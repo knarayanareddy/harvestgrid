@@ -1,7 +1,7 @@
 # HarvestGrid — Specification Traceability
 
-**Status:** local operations, coordinator-verified outcome, synthetic evaluation, and privacy-lifecycle slices validated; most requirements remain incomplete
-**Coverage:** 60 unique requirement and acceptance IDs from [`SPEC.md`](./SPEC.md)
+**Status:** local registration, operations, coordinator-verified outcome, synthetic evaluation, and privacy-lifecycle slices validated; most requirements remain incomplete
+**Coverage:** 60 unique requirement and acceptance IDs from [`SPEC.md`](./SPEC.md); 1 row now has implementation and test paths for `FR-HG-001`
 **Evidence warning:** linked evidence is local source/fixture evidence only; no live integration, device, user-study, or release evidence is implied.
 
 This is the working register required by the implementation specification. Requirement summaries aid navigation only; `SPEC.md` remains normative.
@@ -21,7 +21,7 @@ Use paths relative to this project root for implementation, tests, and evidence.
 
 | ID | Requirement or scenario summary | Status | Implementation paths | Test paths | Demo/device evidence |
 | --- | --- | --- | --- | --- | --- |
-| `FR-HG-001` | Register an owner, organization, tree, cultivar, coarse location, and explicit operational consents. | `not_started` | — | — | — |
+| `FR-HG-001` | Register an owner, organization, tree, cultivar, coarse location, and explicit operational consents. | `implemented` | `packages/domain/harvestgrid_domain/onboarding.py`<br>`packages/domain/harvestgrid_domain/onboarding_adapters.py`<br>`packages/contracts/tree-registration.schema.json` | `tests/unit/test_onboarding.py`<br>`tests/unit/test_onboarding_adapters.py`<br>`tests/contract/test_onboarding_contract.py`<br>`docs/validation.md` | — |
 | `FR-HG-002` | Link a supported Ring device through the documented backend OAuth/API flow and discover actual capabilities. | `not_started` | — | — | — |
 | `FR-HG-003` | Configure tree ROI, exclusion/privacy masks, camera view version, and owner-approved collection schedule. | `not_started` | — | — | — |
 | `FR-HG-004` | Collect supported snapshots/live-view frames/event clips through the real Ring adapter; deduplicate and record provenance. | `not_started` | — | — | — |

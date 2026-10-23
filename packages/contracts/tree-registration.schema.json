@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harvestgrid.example/schemas/tree-registration-v1.json",
+  "title": "HarvestGrid tree registration projection",
+  "description": "Coarse, non-media projection of a registered tree. Exact address, coordinates, access notes, raw residential media, and owner contact details are not permitted fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "tree_id",
+    "owner_id",
+    "organization_id",
+    "cultivar",
+    "coarse_location",
+    "bloom_date",
+    "provenance",
+    "registered_at",
+    "version",
+    "camera_view_approved",
+    "registration_status",
+    "consents",
+    "collection",
+    "forecast_experiment_only",
+    "human_readiness_review_required",
+    "internal_ripeness_inferred",
+    "food_safety_inferred",
+    "exact_address_included",
+    "raw_media_included"
+  ],
+  "properties": {
+    "contract_version": { "const": "tree-registration-v1" },
+    "tree_id": { "$ref": "#/$defs/identifier" },
+    "owner_id": { "$ref": "#/$defs/identifier" },
+    "organization_id": { "$ref": "#/$defs/identifier" },
+    "cultivar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cultivar_id",
+        "display_name",
+        "content_version",
+        "species",
+        "operational_prior_approved"
+      ],
+      "properties": {
+        "cultivar_id": { "$ref": "#/$defs/identifier" },
+        "display_name": { "$ref": "#/$defs/identifier" },
+        "content_version": { "$ref": "#/$defs/identifier" },
+        "species": { "$ref": "#/$defs/identifier" },
+        "operational_prior_approved": { "type": "boolean" }
+      }
+    },
+    "coarse_location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["geohash", "region_code"],
+      "properties": {
+        "geohash": {
+          "type": "string",
+          "pattern": "^[0123456789bcdefghjkmnpqrstuvwxyz]{4,5}$",
+          "description": "Low-precision geohash cell; higher precision and exact coordinates are rejected."
+        },
+        "region_code": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9-]{0,7}$"
+            },
+            { "type": "null" }
+          ],
+          "description": "Optional coarse region label such as a country or region code."
+        }
+      }
+    },
+    "bloom_date": {
+      "oneOf": [{ "type": "string", "format": "date" }, { "type": "null" }],
+      "description": "Optional owner bloom-date estimate; never a ripening inference."
+    },
+    "provenance": { "enum": ["fixture", "live"] },
+    "registered_at": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 0 },
+    "camera_view_approved": { "type": "boolean" },
+    "registration_status": {
+      "enum": [
+        "awaiting_camera_view_approval",
+        "collection_permitted",
+        "collection_blocked"
+      ]
+    },
+    "consents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "granted", "policy_current", "policy_version"],
+        "properties": {
+          "kind": {
+            "enum": [
+              "camera_collection",
+              "organization_operations",
+              "crop_only_training"
+            ]
+          },
+          "granted": { "type": "boolean" },
+          "policy_current": { "type": "boolean" },
+          "policy_version": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+        }
+      }
+    },
+    "collection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["permitted", "blocked_reasons"],
+      "properties": {
+        "permitted": { "type": "boolean" },
+        "blocked_reasons": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "forecast_experiment_only": { "type": "boolean" },
+    "human_readiness_review_required": { "const": true },
+    "internal_ripeness_inferred": { "const": false },
+    "food_safety_inferred": { "const": false },
+    "exact_address_included": { "const": false },
+    "raw_media_included": { "const": false }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^\\S(?:.*\\S)?$"
+    }
+  }
+}
