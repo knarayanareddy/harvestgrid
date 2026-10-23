@@ -9,6 +9,19 @@ from harvestgrid_domain_matching import Candidate, HardConstraints, RankingFeatu
 
 from .evaluation import ReviewedEvaluationSet, evaluate_model_data_gate
 from .forecast import validate_harvest_window
+from .onboarding import (
+    CONSENT_POLICIES,
+    ORGANIZATION_TERMS_VERSION,
+    OWNER_TERMS_VERSION,
+    CoarseLocation,
+    ConsentRecord,
+    OnboardingService,
+    OrganizationRegistration,
+    OwnerRegistration,
+    Provenance,
+    TreeRegistration,
+)
+from .onboarding_adapters import InMemoryOnboardingStore, JsonCultivarCatalog
 from .operations import GleanWorkflow, RestrictedLocation
 from .outcomes import (
     CompletionEntry,
@@ -247,6 +260,55 @@ def main() -> None:
         held_out_season_split=False,
     )
 
+    onboarding = OnboardingService(
+        store=InMemoryOnboardingStore(),
+        cultivars=JsonCultivarCatalog.from_directory(ROOT / "content" / "cultivars"),
+    )
+    onboarding.register_organization(
+        OrganizationRegistration(
+            organization_id="org-fixture",
+            name="Fixture gleaning organization",
+            coordinator_id="coordinator-fixture",
+            terms_version=ORGANIZATION_TERMS_VERSION,
+            terms_accepted=True,
+            at=T0,
+        )
+    )
+    onboarding.register_owner(
+        OwnerRegistration(
+            owner_id="owner-fixture",
+            organization_id="org-fixture",
+            display_name="Fixture owner",
+            authenticated=True,
+            terms_version=OWNER_TERMS_VERSION,
+            terms_accepted=True,
+            at=T0,
+        )
+    )
+    onboarding_tree = onboarding.register_tree(
+        TreeRegistration(
+            tree_id="tree-fixture",
+            owner_id="owner-fixture",
+            organization_id="org-fixture",
+            cultivar_id="european_plum_v1",
+            species="prunus_domestica",
+            coarse_location=CoarseLocation(geohash="u173z", region_code="NL-ZH"),
+            consents=tuple(
+                ConsentRecord(
+                    kind=policy.kind,
+                    policy_version=policy.version,
+                    accepted=True,
+                    accepted_at=T0,
+                    accepted_by="owner-fixture",
+                )
+                for policy in CONSENT_POLICIES
+                if policy.required_for_collection
+            ),
+            provenance=Provenance.FIXTURE,
+            at=T0,
+        )
+    ).tree
+
     print(
         json.dumps(
             {
@@ -280,6 +342,10 @@ def main() -> None:
                     "tree-fixture", "fixture-artifact-0"
                 ),
                 "privacy_tree_deleted": privacy.tree_snapshot("tree-fixture").deleted,
+                "onboarding_registration_status": (onboarding_tree.registration_status.value),
+                "onboarding_collection_permitted": onboarding_tree.collection.permitted,
+                "onboarding_collection_blockers": list(onboarding_tree.collection.blocked_reasons),
+                "onboarding_forecast_experiment_only": (onboarding_tree.forecast_experiment_only),
                 "notification_adapter_connected": False,
                 "durable_workflow_claimed": False,
                 "outcome_workflow_state": closed.state.value,
@@ -298,7 +364,9 @@ def main() -> None:
                 ),
                 "model_data_gate_reasons": data_gate.reason_codes,
                 "notice": (
-                    "Separate in-memory revocation, minimized export, fixture deletion receipts, "
+                    "In-memory owner/organization/tree registration with coarse geohash only; "
+                    "collection remains blocked without an approved camera view. Separate "
+                    "in-memory revocation, minimized export, fixture deletion receipts, "
                     "coordinator-verified outcomes, and synthetic evaluation aggregation only; "
                     "no actual invitation, residential location, glean, donation, human manifest "
                     "review, held-out model evaluation, production deletion job, model promotion, "
