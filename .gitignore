@@ -1,0 +1,22 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+.env
+.env.local
+.env.*.local
+!.env.example
+*.log
+.DS_Store
+# Residential media, model binaries, and private datasets never belong in Git.
+datasets/private/
+models/artifacts/
+*.onnx
+*.pt
+*.pth

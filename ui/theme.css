@@ -1,0 +1,3 @@
+/* Project theme and page-specific wireframe composition. */
+    body { background:#f3f5f7; }
+    :root { --canvas:#f4f2ec; --surface:#ffffff; --surface-2:#e7ece5; --text:#21332b; --muted:#506057; --line:#b8c4b9; --primary:#2e5d46; --on-primary:#ffffff; --accent:#743a58; --on-accent:#ffffff; --success:#2f6547; --warning:#704b00; --danger:#8e3539; --info:#2d5d82; --focus:#1d5f8a; --font-body:"Public Sans","Segoe UI",system-ui,sans-serif; --font-display:"Public Sans","Segoe UI",system-ui,sans-serif; }

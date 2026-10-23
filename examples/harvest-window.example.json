@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "window_id": "01000000000000000000000001",
+  "tree_id": "01000000000000000000000002",
+  "issued_at": "2026-10-20T08:00:00.000Z",
+  "valid_until": "2026-10-27T08:00:00.000Z",
+  "crop": {
+    "species": "prunus_domestica",
+    "cultivar": "Fixture European plum cultivar",
+    "owner_confirmed": true
+  },
+  "observation_references": [
+    {
+      "observation_id": "01000000000000000000000003",
+      "captured_at": "2026-10-20T07:30:00.000Z",
+      "feature_version": "features_v1",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  ],
+  "model": {
+    "name": "european-plum-seasonal-baseline",
+    "version": "1.0.0",
+    "kind": "seasonal_baseline",
+    "dataset_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "feature_version": "features_v1"
+  },
+  "ready_interval": {
+    "start_at": "2026-11-01T08:00:00.000Z",
+    "end_at": "2026-11-10T08:00:00.000Z",
+    "basis": "p50_start_to_p50_end"
+  },
+  "prediction_interval": {
+    "start_lower_at": "2026-10-27T08:00:00.000Z",
+    "start_upper_at": "2026-11-05T08:00:00.000Z",
+    "end_lower_at": "2026-11-05T08:00:00.000Z",
+    "end_upper_at": "2026-11-17T08:00:00.000Z",
+    "coverage_target": 0.8
+  },
+  "visible_yield": {
+    "visible_fruit_count": 42,
+    "count_lower": 30,
+    "count_upper": 55,
+    "estimated_weight_kg": null,
+    "weight_lower_kg": null,
+    "weight_upper_kg": null,
+    "occlusion_fraction": 0.25,
+    "estimation_method": "visible_count_only"
+  },
+  "confidence": {
+    "level": "low",
+    "score": 0.35,
+    "reason_codes": ["limited_history", "high_occlusion"]
+  },
+  "visual_capability": {
+    "internal_ripeness_inferred": false,
+    "food_safety_inferred": false,
+    "human_readiness_review_required": true
+  },
+  "status": "experimental",
+  "provenance": "fixture",
+  "version": 1
+}

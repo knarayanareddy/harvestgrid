@@ -1,0 +1,12 @@
+{
+  "content_version": "european_plum_v1",
+  "species": "prunus_domestica",
+  "review_status": "draft_no_operational_prior_approved",
+  "seasonal_priors": [],
+  "production_ml_gate": {
+    "minimum_tree_season_sequences": 100,
+    "minimum_sites": 20,
+    "held_out_site_and_season_required": true
+  },
+  "notes": "No cultivar prior is supplied yet. A partner-reviewed prior is required before operational baseline forecasting."
+}

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Static low-fidelity HarvestGrid field-operations wireframes using fictional weather and readiness fixtures.">
+  <title>HarvestGrid — Low-fidelity wireframes</title>
+  <link rel="stylesheet" href="../specs/ui/wireframes.css">
+  <link rel="stylesheet" href="./theme.css">
+  <script src="../specs/ui/wireframes.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to wireframes</a>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v4m0 3h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h11a4 4 0 0 0 0-8 6 6 0 0 0-11-1 4.5 4.5 0 0 0 0 9Z"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15m6-12v15"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 8a7 7 0 0 1 12-1l2 5M4 12l2 5a7 7 0 0 0 12-1"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-5-5 5 5-5 5"/></symbol>
+  </svg>
+  <header class="review-header"><div class="review-header__inner"><div class="review-brand"><strong>HarvestGrid</strong><span>UI specification / 04</span></div><nav class="review-links" aria-label="Document links"><a href="../../../specs/ui/index.html">All projects</a><a href="./DESIGN.md">Design</a><a href="./tokens.json">Tokens</a><a href="./WIREFRAMES.md">Screen notes</a></nav></div></header>
+  <main class="review-main" id="main">
+    <div class="review-intro"><span class="eyebrow">Field operations ledger · responsive web</span><h1>Decisions with their conditions attached.</h1><p>Four low-fidelity screens make evidence age, model uncertainty, human readiness, and location precision visible in the operational flow.</p><div class="prototype-notice"><strong>Static review artifact.</strong> Sites, weather, alerts, people, and decisions are fictional fixtures. No weather feed, location service, signature, or submission is active.</div></div>
+    <nav aria-label="HarvestGrid screens"><ul class="screen-nav"><li><a href="#decision">01 · Field decision</a></li><li><a href="#readiness">02 · Readiness</a></li><li><a href="#locations">03 · Map + list</a></li><li><a href="#offline">04 · Offline drafts</a></li></ul></nav>
+
+    <section class="wireframe" id="decision" aria-labelledby="decision-title">
+      <div class="screen-heading"><div><span class="screen-number">SCREEN 01 / RESPONSIVE WEB</span><h2 id="decision-title">Field decision</h2></div><p>A conditional decision names its blockers and evidence; confidence never substitutes for a gate.</p></div>
+      <div class="app-frame">
+        <header class="app-header"><div class="app-header__brand">HarvestGrid</div><div class="app-header__meta"><span>Fictional Orchard · North block</span><span class="status status--success"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-cloud"/></svg>Connected</span><span class="mono">Evidence 06:35 UTC</span></div></header>
+        <div class="app-body">
+          <div class="app-title"><div><h3>Morning harvest decision</h3><p>19 November 2026 · Shift 07:00–13:00 local · Decision HG-DEMO-42</p></div><button class="button button--secondary" type="button" data-static>Change site / date</button></div>
+          <div class="banner banner--warning"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-alert"/></svg><div><strong style="font-size:22px">Conditional — two blockers remain</strong><p>Wind and temperature conditions are within configured limits. An official weather alert and one supervisor readiness review still block approval.</p></div></div>
+          <div class="split app-section">
+            <div class="stack">
+              <section class="panel"><div class="cluster cluster--between"><h4>Decision conditions</h4><span class="status status--info">Observed + model evidence</span></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Condition</th><th>Value</th><th>Gate</th><th>Evidence</th></tr></thead><tbody>
+                <tr><td data-label="Condition"><strong>Temperature</strong></td><td data-label="Value" class="numeric">6.2 °C</td><td data-label="Gate">Above 2.0 °C</td><td data-label="Evidence"><span class="status status--success">Observed · 12 min old</span></td></tr>
+                <tr><td data-label="Condition"><strong>Wind gust</strong></td><td data-label="Value" class="numeric">24 km/h</td><td data-label="Gate">Below 35 km/h</td><td data-label="Evidence"><span class="status status--success">Forecast · 0.71 conf.</span></td></tr>
+                <tr><td data-label="Condition"><strong>Frost probability</strong></td><td data-label="Value" class="numeric">0.18</td><td data-label="Gate">Context only</td><td data-label="Evidence"><span class="status status--info">Model · not a gate</span></td></tr>
+                <tr><td data-label="Condition"><strong>Official alert</strong></td><td data-label="Value">Wind advisory</td><td data-label="Gate">Review required</td><td data-label="Evidence"><span class="status status--warning">Active until 09:00</span></td></tr>
+              </tbody></table></div></section>
+              <section class="panel"><h4>Why not “Go”?</h4><ol class="step-list small"><li>Official alert HG-ALERT-DEMO-2 requires an authorized review of the work window.</li><li>Team B readiness review is outstanding; no approval can bypass it.</li></ol><p class="small muted">The frost model does not independently trigger or clear either blocker.</p></section>
+            </div>
+            <aside class="stack">
+              <section class="panel"><div class="cluster cluster--between"><h4>Worker readiness</h4><span class="status status--warning">5 of 6 reviewed</span></div><div class="meter" role="progressbar" aria-label="Readiness reviews complete" aria-valuemin="0" aria-valuemax="6" aria-valuenow="5" aria-valuetext="5 of 6 readiness reviews complete"><span style="width:83%"></span></div><ul class="rule-list small"><li class="cluster cluster--between"><span>Team A · 3 workers</span><span class="status status--success">Ready</span></li><li class="cluster cluster--between"><span>Team B · 3 workers</span><span class="status status--warning">1 review due</span></li></ul><a class="button button--secondary" href="#readiness" style="width:100%">Open readiness</a></section>
+              <section class="panel"><h4>Human approval</h4><p class="small muted">Resolve both blockers before requesting a new decision. The current brief is not an approved work order.</p><button class="button" type="button" disabled aria-disabled="true" style="width:100%"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-lock"/></svg>Approval blocked</button><button class="button button--ghost" type="button" data-static style="width:100%">Export review brief</button></section>
+              <section class="panel panel--muted"><strong>Evidence age</strong><p class="small muted">Oldest gate evidence: 28 minutes. Refresh at 06:50 UTC or before conditions materially change.</p></section>
+            </aside>
+          </div>
+        </div>
+      </div>
+      <details class="annotations" open><summary>Interaction and state annotations</summary><ul><li>Conditional and review-required evidence remain distinct.</li><li>On mobile, decision rationale and blockers precede the detailed conditions.</li><li>Stale evidence removes approval availability but preserves cached observations with their timestamps.</li></ul></details>
+    </section>
+
+    <section class="wireframe" id="readiness" aria-labelledby="readiness-title">
+      <div class="screen-heading"><div><span class="screen-number">SCREEN 02 / RESPONSIVE WEB</span><h2 id="readiness-title">Worker readiness</h2></div><p>Reading, worker acknowledgment, and supervisor review are separate attributable events.</p></div>
+      <div class="app-frame"><header class="app-header"><div class="app-header__brand">HarvestGrid</div><div class="app-header__meta"><span>North block · Shift 07:00</span><span class="status status--neutral">Briefing v6 · English</span></div></header><div class="app-body">
+        <div class="app-title"><div><h3>Readiness by assignment</h3><p>Fictional worker labels · No real signatures or personal data</p></div><span class="status status--warning">1 blocker</span></div>
+        <div class="banner banner--warning"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-alert"/></svg><div><strong>Team B is not ready for approval</strong><p>Worker B-02 has read briefing v6. The required supervisor review is still outstanding.</p></div></div>
+        <div class="grid-2 app-section">
+          <section class="panel"><div class="cluster cluster--between"><h4>Team A · Picking</h4><span class="status status--success"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-check"/></svg>Ready</span></div><p class="small muted">Assignment HG-A-DEMO · Briefing v6</p><ul class="rule-list"><li><div class="cluster cluster--between"><strong>Worker A-01</strong><span class="status status--success">Reviewed 06:12</span></div><p class="small muted">Read 06:02 · worker acknowledgment 06:04</p></li><li><div class="cluster cluster--between"><strong>Worker A-02</strong><span class="status status--success">Reviewed 06:14</span></div><p class="small muted">Read 06:03 · worker acknowledgment 06:05</p></li><li><div class="cluster cluster--between"><strong>Worker A-03</strong><span class="status status--success">Reviewed 06:15</span></div><p class="small muted">Read 06:05 · worker acknowledgment 06:07</p></li></ul></section>
+          <section class="panel"><div class="cluster cluster--between"><h4>Team B · Picking</h4><span class="status status--warning">Review due</span></div><p class="small muted">Assignment HG-B-DEMO · Briefing v6</p><ul class="rule-list"><li><div class="cluster cluster--between"><strong>Worker B-01</strong><span class="status status--success">Reviewed 06:18</span></div><p class="small muted">Read 06:08 · worker acknowledgment 06:10</p></li><li><div class="cluster cluster--between"><strong>Worker B-02</strong><span class="status status--warning">Read · not reviewed</span></div><p class="small muted">Read 06:20 · worker acknowledgment 06:22</p><button class="button button--secondary" type="button" data-static>Open supervisor review</button></li><li><div class="cluster cluster--between"><strong>Worker B-03</strong><span class="status status--success">Reviewed 06:19</span></div><p class="small muted">Read 06:09 · worker acknowledgment 06:11</p></li></ul></section>
+        </div>
+        <div class="panel app-section"><div class="cluster"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-lock"/></svg><strong>Attribution rule</strong></div><p class="small muted">A supervisor can record only the supervisor-review event. The interface provides no control to sign a worker’s acknowledgment on that worker’s behalf.</p></div>
+      </div></div>
+      <details class="annotations"><summary>Interaction and state annotations</summary><ul><li>Offline signed drafts remain labeled local until accepted by the server.</li><li>Briefing-version changes invalidate prior read states explicitly.</li><li>Revocation and reassignment preserve the audit history without exposing unrelated PII.</li></ul></details>
+    </section>
+
+    <section class="wireframe" id="locations" aria-labelledby="locations-title">
+      <div class="screen-heading"><div><span class="screen-number">SCREEN 03 / RESPONSIVE WEB</span><h2 id="locations-title">Coarsened orchard map and list</h2></div><p>Operational zones are available without a map and without exposing raw worker location.</p></div>
+      <div class="app-frame"><div class="app-body">
+        <div class="app-title"><div><h3>North block zones</h3><p>Worker-facing scope · 19 November 2026, 06:35 UTC</p></div><div class="tabs" role="group" aria-label="Location view"><span class="is-active">Map</span><span>List</span></div></div>
+        <div class="banner"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-lock"/></svg><div><strong>Location precision: operational zone only</strong><p>Raw coordinates, worker trails, signatures, and unrelated sites are excluded from this view and its export.</p></div></div>
+        <div class="split split--wide-left app-section">
+          <section class="panel"><div class="cluster cluster--between"><h4>Zone overview</h4><span class="small muted">Select a zone for the same detail shown in the list</span></div><div class="zone-map" role="group" aria-label="Six coarsened orchard zones">
+            <button class="zone zone--selected" type="button" data-static><strong>A1</strong><br><span class="small">Conditional</span></button><button class="zone" type="button" data-static><strong>A2</strong><br><span class="small">Go</span></button><button class="zone zone--warning" type="button" data-static><strong>A3</strong><br><span class="small">Review</span></button><button class="zone" type="button" data-static><strong>B1</strong><br><span class="small">Go</span></button><button class="zone zone--warning" type="button" data-static><strong>B2</strong><br><span class="small">Readiness due</span></button><button class="zone" type="button" data-static><strong>B3</strong><br><span class="small">No assignment</span></button>
+          </div><p class="micro muted">Dashed border = review/readiness attention. Every zone also has text status.</p></section>
+          <section class="panel"><span class="eyebrow">Equivalent list detail</span><h4>Zone A1 · Conditional</h4><dl class="definition-grid small"><dt>Assignment</dt><dd>Team A · 07:00 start</dd><dt>Evidence</dt><dd class="numeric">Current 06:35 UTC</dd><dt>Condition</dt><dd>Official-alert review</dd><dt>Readiness</dt><dd>3 of 3 reviewed</dd><dt>Coordinates</dt><dd>Not exposed</dd></dl><div class="divider"></div><div class="cluster cluster--between"><span class="small"><strong>A2</strong><br><span class="muted">Go · Team A</span></span><span class="status status--success">Go</span></div><div class="cluster cluster--between" style="margin-top:12px"><span class="small"><strong>B2</strong><br><span class="muted">Conditional · Team B</span></span><span class="status status--warning">Review</span></div></section>
+        </div>
+        <div class="button-row"><button class="button button--secondary" type="button" data-static>Preview privacy-scoped export</button><button class="button button--ghost" type="button" data-static>Open accessible list only</button></div>
+      </div></div>
+      <details class="annotations"><summary>Interaction and state annotations</summary><ul><li>The map never traps keyboard focus; list view carries equivalent actions.</li><li>Zone shapes, labels, and border patterns supplement status color.</li><li>Map unavailability does not remove operational zone information.</li></ul></details>
+    </section>
+
+    <section class="wireframe" id="offline" aria-labelledby="offline-title">
+      <div class="screen-heading"><div><span class="screen-number">SCREEN 04 / RESPONSIVE WEB</span><h2 id="offline-title">Offline draft queue</h2></div><p>Local persistence and server acceptance use separate, persistent labels.</p></div>
+      <div class="app-frame"><header class="app-header"><div class="app-header__brand">HarvestGrid</div><div class="app-header__meta"><span class="status status--warning"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-cloud"/></svg>Offline · changes saved on device</span></div></header><div class="app-body">
+        <div class="app-title"><div><h3>Offline work</h3><p>North block · Last server connection 06:38 local</p></div><button class="button button--secondary" type="button" data-static><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg>Retry connection</button></div>
+        <div class="banner banner--warning"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><strong>Work is preserved locally—not submitted</strong><p>Cached evidence remains readable with its original timestamps. Server-dependent approval is unavailable.</p></div></div>
+        <div class="grid-2 app-section">
+          <article class="panel"><div class="cluster cluster--between"><span class="eyebrow">Draft HG-LOCAL-08</span><span class="status status--warning">Pending upload</span></div><h4>Supervisor readiness review · Worker B-02</h4><dl class="definition-grid small"><dt>Saved on device</dt><dd class="numeric">19 Nov, 06:42 local</dd><dt>Server state</dt><dd><strong>Not accepted</strong></dd><dt>Based on</dt><dd>Briefing v6 · assignment HG-B-DEMO</dd><dt>Attachment</dt><dd>None</dd></dl><div class="button-row"><button class="button" type="button" disabled aria-disabled="true">Upload while offline</button><button class="button button--secondary" type="button" data-static>View local draft</button></div></article>
+          <article class="panel"><div class="cluster cluster--between"><span class="eyebrow">Draft HG-LOCAL-06</span><span class="status status--danger">Conflict on reconnect</span></div><h4>Zone note · A1</h4><dl class="definition-grid small"><dt>Local version</dt><dd class="numeric">06:31 · 214 characters</dd><dt>Server version</dt><dd class="numeric">06:34 · another editor</dd><dt>Local copy</dt><dd><strong>Preserved</strong></dd></dl><p class="small muted">Choose how to reconcile after reconnecting. Neither version is silently overwritten.</p><div class="button-row"><button class="button button--secondary" type="button" data-static>Compare versions</button><button class="button button--ghost" type="button" data-static>Keep local copy</button></div></article>
+        </div>
+        <div class="panel app-section"><h4>What happens on reconnect?</h4><ol class="step-list small"><li>Upload eligible local drafts with idempotency keys.</li><li>Show server acceptance only after the authoritative response.</li><li>Route conflicts to comparison; retain the local copy until resolved.</li></ol></div>
+      </div></div>
+      <details class="annotations"><summary>Interaction and state annotations</summary><ul><li>Retry never discards a local draft.</li><li>Storage-full/eviction warnings appear before data loss and name export options.</li><li>Conflict resolution requires an authorized choice, not last-write-wins by default.</li></ul></details>
+    </section>
+    <p class="demo-status" id="demo-status" role="status" aria-live="polite"></p>
+  </main>
+  <footer class="review-footer">HarvestGrid low-fidelity UI specification · Fictional fixtures only · No live weather, official alert, location, or signature integration is active.</footer>
+</body>
+</html>

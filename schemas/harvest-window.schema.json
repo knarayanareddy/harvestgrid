@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://specs.local/harvestgrid/harvest-window.schema.json",
+  "title": "HarvestGrid Harvest Window",
+  "description": "Probabilistic visible-crop forecast requiring human readiness review. It never asserts internal ripeness or food safety.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "window_id", "tree_id", "issued_at", "valid_until", "crop", "observation_references", "model", "ready_interval", "prediction_interval", "visible_yield", "confidence", "visual_capability", "status", "provenance", "version"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "window_id": { "$ref": "#/$defs/ulid" },
+    "tree_id": { "$ref": "#/$defs/ulid" },
+    "issued_at": { "$ref": "#/$defs/timestamp" },
+    "valid_until": { "$ref": "#/$defs/timestamp" },
+    "crop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["species", "cultivar", "owner_confirmed"],
+      "properties": {
+        "species": { "const": "prunus_domestica" },
+        "cultivar": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "owner_confirmed": { "const": true }
+      }
+    },
+    "observation_references": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["observation_id", "captured_at", "feature_version", "sha256"],
+        "properties": {
+          "observation_id": { "$ref": "#/$defs/ulid" },
+          "captured_at": { "$ref": "#/$defs/timestamp" },
+          "feature_version": { "type": "string", "pattern": "^features_v[0-9]+$" },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "kind", "dataset_manifest_sha256", "feature_version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "kind": { "enum": ["seasonal_baseline", "quantile_lightgbm"] },
+        "dataset_manifest_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "feature_version": { "type": "string", "pattern": "^features_v[0-9]+$" }
+      }
+    },
+    "ready_interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_at", "end_at", "basis"],
+      "properties": {
+        "start_at": { "$ref": "#/$defs/timestamp" },
+        "end_at": { "$ref": "#/$defs/timestamp" },
+        "basis": { "enum": ["p50_start_to_p50_end", "coordinator_selected"] }
+      }
+    },
+    "prediction_interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_lower_at", "start_upper_at", "end_lower_at", "end_upper_at", "coverage_target"],
+      "properties": {
+        "start_lower_at": { "$ref": "#/$defs/timestamp" },
+        "start_upper_at": { "$ref": "#/$defs/timestamp" },
+        "end_lower_at": { "$ref": "#/$defs/timestamp" },
+        "end_upper_at": { "$ref": "#/$defs/timestamp" },
+        "coverage_target": { "const": 0.8 }
+      }
+    },
+    "visible_yield": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visible_fruit_count", "count_lower", "count_upper", "estimated_weight_kg", "weight_lower_kg", "weight_upper_kg", "occlusion_fraction", "estimation_method"],
+      "properties": {
+        "visible_fruit_count": { "type": "integer", "minimum": 0 },
+        "count_lower": { "type": "integer", "minimum": 0 },
+        "count_upper": { "type": "integer", "minimum": 0 },
+        "estimated_weight_kg": { "type": ["number", "null"], "minimum": 0 },
+        "weight_lower_kg": { "type": ["number", "null"], "minimum": 0 },
+        "weight_upper_kg": { "type": ["number", "null"], "minimum": 0 },
+        "occlusion_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+        "estimation_method": { "enum": ["visible_count_only", "cultivar_weight_model", "coordinator_estimate"] }
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "score", "reason_codes"],
+      "properties": {
+        "level": { "enum": ["low", "medium", "high"] },
+        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "reason_codes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["sufficient_history", "limited_history", "camera_moved", "high_occlusion", "low_detection_confidence", "weather_missing", "cultivar_unknown", "out_of_distribution", "coordinator_reviewed"] }
+        }
+      }
+    },
+    "visual_capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["internal_ripeness_inferred", "food_safety_inferred", "human_readiness_review_required"],
+      "properties": {
+        "internal_ripeness_inferred": { "const": false },
+        "food_safety_inferred": { "const": false },
+        "human_readiness_review_required": { "const": true }
+      }
+    },
+    "status": { "enum": ["experimental", "owner_review_required", "coordinator_review_required", "coordinator_confirmed", "rejected", "superseded"] },
+    "human_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer_id", "reviewed_at", "readiness_confirmed", "notes"],
+      "properties": {
+        "reviewer_id": { "$ref": "#/$defs/ulid" },
+        "reviewed_at": { "$ref": "#/$defs/timestamp" },
+        "readiness_confirmed": { "type": "boolean" },
+        "notes": { "type": "string", "maxLength": 1000 }
+      }
+    },
+    "provenance": { "enum": ["live_ring", "fixture"] },
+    "version": { "type": "integer", "minimum": 1 }
+  },
+  "$defs": {
+    "ulid": { "type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  }
+}
