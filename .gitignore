@@ -22,3 +22,5 @@ models/artifacts/
 *.pth
 node_modules/
 .pnpm-store/
+# Install sidecars are machine-local facts about an untracked artifact.
+packages/vision/weights/*.provenance.json

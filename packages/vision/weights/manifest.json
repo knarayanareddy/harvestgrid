@@ -12,7 +12,9 @@
       "architecture": "yolov8n",
       "quantization": "int8",
       "input_size": 640,
-      "class_names": ["plum_cluster"],
+      "class_names": [
+        "plum_cluster"
+      ],
       "expected_sha256": null,
       "expected_size_bytes": null,
       "download_url": null,
@@ -22,7 +24,7 @@
         "No owner-consented European-plum detection dataset has been released, so no checkpoint can be trained.",
         "No reviewed model card, held-out site/season evaluation, or approval record exists for a fruit detector.",
         "Generic COCO/ImageNet YOLOv8n weights detect no fruit class; presenting one as a plum detector would fabricate model evidence.",
-        "This environment cannot download GitHub release assets (objects.githubusercontent.com is blocked), so no third-party binary can be retrieved here."
+        "GitHub release assets are unreachable from the validation sandbox, so third-party weights can only arrive through a pinned source archive or a mirrored artifact store."
       ],
       "acceptance_requirements": [
         "A reviewed dataset manifest with owner consent and held-out sites/seasons.",
@@ -32,6 +34,44 @@
       ]
     },
     {
+      "artifact_id": "fruit-quality-yolov8n-320-v1",
+      "role": "fruit_detection_reference",
+      "status": "ready",
+      "format": "onnx",
+      "architecture": "yolov8n",
+      "quantization": "fp32",
+      "input_size": 320,
+      "class_names": [
+        "bad apple",
+        "bad banana",
+        "bad orange",
+        "bad pomegranate",
+        "good apple",
+        "good banana",
+        "good orange",
+        "good pomegranate"
+      ],
+      "expected_sha256": "c76ccd5e40b06c45e30c6d5249214993cbef4ccbd4be153f1e6295473e8070b6",
+      "expected_size_bytes": 12144721,
+      "download_url": "https://codeload.github.com/AKASH-ALAM/Fruit_Quality_Detection_Using_Deep_Learning/tar.gz/2c9ab8de378b9a196c71bd42cef60649b434902f",
+      "archive": {
+        "sha256": "66b7cb2167b2d15ebb57e90a9871fb702092c46b4ff6acfc258c2f3e9e4ab0ec",
+        "member": "Fruit_Quality_Detection_Using_Deep_Learning-2c9ab8de378b9a196c71bd42cef60649b434902f/model/fruit_quality/weights/best.onnx"
+      },
+      "license": "AGPL-3.0-only",
+      "license_notes": "The upstream repository is MIT, but the ONNX metadata records Ultralytics' AGPL-3.0 license because the weights are a YOLOv8 export (Ultralytics 8.4.37). This tooling treats the artifact as AGPL-3.0-only: installing it requires an explicit `--accept-license AGPL-3.0-only`, and nothing derived from it may ship without a license review. Weights are never committed.",
+      "training_provenance": "YOLOv8n exported by Ultralytics 8.4.37 on 2026-04-11 from best.pt trained for 50 epochs at imgsz=320 on the Rotten Fruit Detector Dataset v3 (Mendeley xkbjx8959c/2). The upstream README reports mAP@50 0.9897, precision 0.9817 and recall 0.9779 on its own validation split. Classes are fresh/rotten quality labels for apple, banana, orange and pomegranate; the checkpoint has no plum class, no HarvestGrid site or season in its evaluation, and no HarvestGrid review.",
+      "approved_for_operational_use": false,
+      "blocked_reasons": [],
+      "acceptance_requirements": [
+        "A license review of AGPL-3.0-only weights before any product integration.",
+        "HarvestGrid-collected evaluation on held-out sites and seasons before any operational claim.",
+        "A documented mapping from the fresh/rotten classes to HarvestGrid feature semantics (the runtime currently reports class-agnostic cluster boxes).",
+        "Coordinator review recorded in SPEC_TRACEABILITY.md before any operational claim."
+      ],
+      "model_card": "docs/models/fruit-quality-yolov8n-320-v1.md"
+    },
+    {
       "artifact_id": "synthetic-shape-smoke-v1",
       "role": "runtime_smoke_test_only",
       "status": "test_only",
@@ -39,7 +79,9 @@
       "architecture": "single-conv-shape-probe",
       "quantization": "fp32",
       "input_size": 640,
-      "class_names": ["fruit"],
+      "class_names": [
+        "fruit"
+      ],
       "expected_sha256": null,
       "expected_size_bytes": null,
       "download_url": null,

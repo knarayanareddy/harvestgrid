@@ -21,10 +21,10 @@ lint:
 	$(UV) run ruff format --check .
 
 typecheck:
-	$(UV) run mypy packages/domain packages/matching packages/vision packages/weather-client services/ring-adapter services/forecasting services/notifications
+	$(UV) run mypy packages/domain packages/matching packages/vision packages/weather-client services/ring-adapter services/forecasting services/notifications services/api packages/testkit
 
 test-unit:
-	$(UV) run pytest tests/unit --cov=harvestgrid_domain --cov=harvestgrid_domain_matching --cov=harvestgrid_vision --cov=harvestgrid_weather --cov=harvestgrid_ring_adapter --cov=harvestgrid_forecasting --cov=harvestgrid_notifications --cov-branch --cov-report=term-missing --cov-fail-under=90
+	$(UV) run pytest tests/unit --cov=harvestgrid_domain --cov=harvestgrid_domain_matching --cov=harvestgrid_vision --cov=harvestgrid_weather --cov=harvestgrid_ring_adapter --cov=harvestgrid_forecasting --cov=harvestgrid_notifications --cov=harvestgrid_api --cov-branch --cov-report=term-missing --cov-fail-under=90
 
 test-contract:
 	$(UV) run pytest tests/contract
