@@ -1,19 +1,19 @@
 {
   "video": "harvestgrid-demo.webm",
-  "generatedAt": "2026-10-24T18:06:18.496Z",
+  "generatedAt": "2026-10-24T18:39:17.260Z",
   "viewport": {
     "width": 1280,
     "height": 900
   },
-  "durationMs": 108869,
+  "durationMs": 146134,
   "scenes": [
     {
       "id": "onboarding",
       "title": "1 · Tree onboarding and consent",
       "cardTitle": "Onboarding",
-      "narration": "A tree is registered with a coarse geohash only. Camera collection needs its own consent — the demo refuses to continue without it.",
-      "startMs": 3874,
-      "endMs": 26454,
+      "narration": "Welcome to HarvestGrid, a decentralized neighborhood fruit rescue network built for the Ring smart home ecosystem. Across urban communities, millions of pounds of backyard fruit rot every season while local pantries face fresh produce shortages. HarvestGrid begins with privacy-preserving tree onboarding: trees are registered with coarse geohashes only, keeping exact street addresses anonymous. Furthermore, camera data collection strictly requires explicit homeowner consent; without it, ingestion is blocked. Once consented, the tree is securely saved to the edge registry.",
+      "startMs": 2364,
+      "endMs": 36769,
       "assertions": [
         "collection-status ∋ Consented"
       ]
@@ -22,9 +22,9 @@
       "id": "privacy",
       "title": "2 · Privacy polygon and mask boundary",
       "cardTitle": "Privacy ROI Mask",
-      "narration": "Drag a vertex of the tree ROI, then widen the neighbour mask. Every change resets both approvals, and detections that fall mostly outside the allowed region are dropped.",
-      "startMs": 29130,
-      "endMs": 51990,
+      "narration": "Scene two: privacy boundaries. To protect neighbor privacy, homeowners draw an adjustable polygon mask directly over their Ring camera view. Any area outside the tree canopy—including neighboring windows, sidewalks, or backyards—is permanently redacted. Notice that dragging any vertex or adjusting the mask slider immediately invalidates existing approvals, preventing accidental surveillance drift. The homeowner and coordinator re-approve the boundary, and a signed Ring HMAC webhook is replayed and verified on-device.",
+      "startMs": 37923,
+      "endMs": 72497,
       "assertions": [
         "view-approvals ∋ owner ✔",
         "webhook-summary ∋ HMAC verified"
@@ -34,9 +34,9 @@
       "id": "ripening",
       "title": "3 · Open-Meteo ripening curve",
       "cardTitle": "Open-Meteo Ripening",
-      "narration": "Warm the weather offset and the growing-degree-day curve advances, moving the stage and the harvest window. The projection stays experimental, with human review required.",
-      "startMs": 54668,
-      "endMs": 76986,
+      "narration": "Scene three: autonomous ripening intelligence. HarvestGrid couples on-device ONNX vision models with Open-Meteo microclimate weather forecasts. By tracking cumulative growing-degree-days against biological base temperatures, the system models fruit maturation. As temperature offsets fluctuate from warm anomalies to cooler cold snaps, the ripening curve dynamically recalculates the optimal harvest window. Crucially, the gleaning dispatch gate remains locked with human review required, preventing premature harvesting.",
+      "startMs": 73652,
+      "endMs": 106753,
       "assertions": [
         "dispatch-gate ∋ Gate"
       ]
@@ -45,9 +45,9 @@
       "id": "dispatch",
       "title": "4 · Volunteer dispatch",
       "cardTitle": "Volunteer Dispatch",
-      "narration": "Confirm readiness, assign two volunteers, and dispatch. The result shows per-recipient outcomes, masked phone numbers, and body digests — never message bodies.",
-      "startMs": 80185,
-      "endMs": 102130,
+      "narration": "Scene four: volunteer gleaning dispatch. Once harvest conditions peak and the coordinator confirms field readiness, nearby registered volunteers are assigned to the harvest site. Dispatch messages enforce strict privacy boundaries: volunteer telephone numbers are masked, message bodies are hashed to cryptographic digests, and SMS opt-in status is verified. Upon dispatch, donation receipts are cryptographically committed to a local ledger for neighborhood food distribution, closing the loop from backyard tree to neighborhood food pantry.",
+      "startMs": 107944,
+      "endMs": 140464,
       "assertions": [
         "dispatch-summary ∋ sent",
         "outcome-volunteer-c ∋ sms opt in required"
