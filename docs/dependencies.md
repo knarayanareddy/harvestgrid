@@ -6,9 +6,15 @@
 - uv 0.9.5 and `uv.lock`; Hatchling 1.27.0 builds the source distribution/wheel.
 - Ruff 0.13.2, mypy 1.18.2, pytest 9.0.3, pytest-cov 6.3.0.
 - jsonschema 4.25.1 with format support and pip-audit 2.9.0.
+- API and vision verification: FastAPI 0.120.4, starlette 0.49.3, pydantic 2.14.1, httpx 0.28.1,
+  uvicorn 0.38.0, and pillow 12.0.0 — all dev-group only. The runtime packages still declare no
+  third-party dependency; `services/api/` is served by an application factory without importing
+  any of them at package import time beyond FastAPI itself.
 - No third-party production runtime dependency for current domain/matching packages.
 
-The project has an independent environment and lockfile. Ring, weather, ONNX/CV, database, notification, and AWS SDK dependencies are not present.
+The project has an independent environment and lockfile. Ring, live weather, database,
+notification-provider, and AWS SDK dependencies are not present. `onnxruntime`, `onnx`, and
+`numpy` are dev-group entries used to exercise the vision runtime and weight verification.
 
 ## Security audit
 

@@ -1,0 +1,215 @@
+{
+  "verified_at": "2026-10-24T13:37:19.811415+00:00",
+  "artifact_id": "fruit-quality-yolov8n-320-v1",
+  "artifact_sha256": "c76ccd5e40b06c45e30c6d5249214993cbef4ccbd4be153f1e6295473e8070b6",
+  "artifact_size_bytes": 12144721,
+  "artifact_verified": true,
+  "architecture": "yolov8n",
+  "quantization": "fp32",
+  "input_size": 320,
+  "class_names": [
+    "bad apple",
+    "bad banana",
+    "bad orange",
+    "bad pomegranate",
+    "good apple",
+    "good banana",
+    "good orange",
+    "good pomegranate"
+  ],
+  "license": "AGPL-3.0-only",
+  "approved_for_operational_use": false,
+  "model_card": "docs/models/fruit-quality-yolov8n-320-v1.md",
+  "sample": {
+    "sha256": "3e4ab9479da5661fe528ab732bb2466a8204350efcb4bbc8996e8e125ca6f623",
+    "width": 480,
+    "height": 360,
+    "grid": [
+      480,
+      360
+    ],
+    "committed": false,
+    "note": "model/fruit_quality/train_batch0.jpg from the pinned upstream archive (AKASH-ALAM/Fruit_Quality_Detection_Using_Deep_Learning@2c9ab8d, MIT); image not committed"
+  },
+  "privacy_view": {
+    "roi_polygon": [
+      [
+        0.08,
+        0.08
+      ],
+      [
+        0.92,
+        0.08
+      ],
+      [
+        0.92,
+        0.92
+      ],
+      [
+        0.08,
+        0.92
+      ]
+    ],
+    "mask_polygon": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.5,
+        0.0
+      ],
+      [
+        0.5,
+        0.5
+      ],
+      [
+        0.0,
+        0.5
+      ]
+    ],
+    "mask_kind": "neighbor_property",
+    "mask_coverage_of_roi": 0.25
+  },
+  "results": {
+    "full_frame": {
+      "detections": 7,
+      "boxes": [
+        {
+          "cluster_id": "onnx-4b0204bae410",
+          "center": [
+            0.063,
+            0.858
+          ],
+          "size": [
+            0.078,
+            0.087
+          ],
+          "confidence": 0.396
+        },
+        {
+          "cluster_id": "onnx-38e6f9fb0497",
+          "center": [
+            0.07,
+            0.95
+          ],
+          "size": [
+            0.094,
+            0.092
+          ],
+          "confidence": 0.809
+        },
+        {
+          "cluster_id": "onnx-a8e56c283bd6",
+          "center": [
+            0.129,
+            0.426
+          ],
+          "size": [
+            0.242,
+            0.122
+          ],
+          "confidence": 0.387
+        },
+        {
+          "cluster_id": "onnx-e3a3a5af47bd",
+          "center": [
+            0.144,
+            0.837
+          ],
+          "size": [
+            0.079,
+            0.098
+          ],
+          "confidence": 0.438
+        },
+        {
+          "cluster_id": "onnx-bbcbdb714574",
+          "center": [
+            0.15,
+            0.916
+          ],
+          "size": [
+            0.088,
+            0.08
+          ],
+          "confidence": 0.444
+        },
+        {
+          "cluster_id": "onnx-3467104a9620",
+          "center": [
+            0.397,
+            0.881
+          ],
+          "size": [
+            0.08,
+            0.072
+          ],
+          "confidence": 0.591
+        },
+        {
+          "cluster_id": "onnx-17d8b7e120e4",
+          "center": [
+            0.923,
+            0.874
+          ],
+          "size": [
+            0.138,
+            0.143
+          ],
+          "confidence": 0.478
+        }
+      ]
+    },
+    "roi_only": {
+      "detections": 4,
+      "dropped_by_roi": 3
+    },
+    "roi_minus_mask": {
+      "detections": 3,
+      "dropped_by_mask": 1,
+      "boxes": [
+        {
+          "cluster_id": "onnx-e3a3a5af47bd",
+          "center": [
+            0.144,
+            0.837
+          ],
+          "size": [
+            0.079,
+            0.098
+          ],
+          "confidence": 0.438
+        },
+        {
+          "cluster_id": "onnx-bbcbdb714574",
+          "center": [
+            0.15,
+            0.916
+          ],
+          "size": [
+            0.088,
+            0.08
+          ],
+          "confidence": 0.444
+        },
+        {
+          "cluster_id": "onnx-3467104a9620",
+          "center": [
+            0.397,
+            0.881
+          ],
+          "size": [
+            0.08,
+            0.072
+          ],
+          "confidence": 0.591
+        }
+      ]
+    }
+  },
+  "privacy_evidence": {
+    "masked_boxes_removed": 1,
+    "kept_boxes_outside_roi": 0
+  }
+}

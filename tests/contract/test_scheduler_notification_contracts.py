@@ -1,6 +1,8 @@
 """Contracts for the weather scheduler, ripening curves, SMS dispatch, and ONNX artifacts."""
 
 import json
+import shutil
+import subprocess
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -26,7 +28,7 @@ from harvestgrid_notifications import (
     VolunteerContact,
     render_alert,
 )
-from harvestgrid_vision.weights import WEIGHTS_DIR, load_manifest
+from harvestgrid_vision.weights import load_manifest
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -247,8 +249,17 @@ def test_manifest_declares_no_operational_fruit_detector() -> None:
     assert primary.quantization == "int8"
     assert primary.architecture == "yolov8n"
     assert manifest.artifact("synthetic-shape-smoke-v1").approved_for_operational_use is False
-    onnx_files = sorted(WEIGHTS_DIR.glob("*.onnx"))
-    assert onnx_files == [], "ONNX binaries must never be committed"
+    # A verified local install may exist; what the policy forbids is *committing* a binary.
+    git = shutil.which("git") or "git"
+    tracked = subprocess.run(  # noqa: S603
+        [git, "ls-files", "--", "packages/vision/weights"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.split()
+    assert [name for name in tracked if name.endswith((".onnx", ".onnx.data"))] == []
+    assert "packages/vision/weights/manifest.json" in tracked
 
 
 def test_gitignore_excludes_model_binaries() -> None:

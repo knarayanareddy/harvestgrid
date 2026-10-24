@@ -1,22 +1,26 @@
 # HarvestGrid validation record
 
-Recorded 2026-10-24. The forecasting scheduler, SMS dispatch, and ONNX runtime slices were validated on 2026-10-24 under the same source-built CPython 3.12.12 with zlib 1.3.1 and SQLite 3.38.2, adding `onnxruntime` 1.23.2, `onnx` 1.19.1, and `numpy` 2.3.4 as test-only dev dependencies. The interpreter still has no `_ssl` module, so the dependency audit was not rerun. ROI, Ring webhook, weather, feature-extraction, and coordinator-dashboard slices were validated on 2026-10-24 under the same source-built CPython 3.12.12; the interpreter still has no `_ssl` module, so the dependency audit was not rerun. The dashboard was additionally validated with Node 22, pnpm 10.15.0, TypeScript 5.9.3, Vite 8.3.5, and Vitest 5.0.5. Earlier slices were validated under source-built CPython 3.12.12 with zlib, SQLite, and OpenSSL support, including the dependency audit. The `FR-HG-001` onboarding revalidation ran on 2026-10-23 under source-built CPython 3.12.12 with zlib 1.3.1 and SQLite 3.38.2; that sandbox interpreter has no OpenSSL module, so the network audit step was not rerun for this slice. Python 3.11 was not substituted in either run.
+Recorded 2026-10-24. The coordination API, verified reference checkpoint, and React revalidation
+were added on 2026-10-24 under the same source-built CPython 3.12.12 (zlib 1.3.1, SQLite 3.38.2,
+no `_ssl`), so `starlette.testclient` cannot start there; the API tests use a purpose-built ASGI
+driver in `packages/testkit/` instead. `pillow` 12.0.0 joined the dev dependencies to decode
+verification photographs. The forecasting scheduler, SMS dispatch, and ONNX runtime slices were validated on 2026-10-24 under the same source-built CPython 3.12.12 with zlib 1.3.1 and SQLite 3.38.2, adding `onnxruntime` 1.23.2, `onnx` 1.19.1, and `numpy` 2.3.4 as test-only dev dependencies. The interpreter still has no `_ssl` module, so the dependency audit was not rerun. ROI, Ring webhook, weather, feature-extraction, and coordinator-dashboard slices were validated on 2026-10-24 under the same source-built CPython 3.12.12; the interpreter still has no `_ssl` module, so the dependency audit was not rerun. The dashboard was additionally validated with Node 22, pnpm 10.15.0, TypeScript 5.9.3, Vite 8.3.5, and Vitest 5.0.5. Earlier slices were validated under source-built CPython 3.12.12 with zlib, SQLite, and OpenSSL support, including the dependency audit. The `FR-HG-001` onboarding revalidation ran on 2026-10-23 under source-built CPython 3.12.12 with zlib 1.3.1 and SQLite 3.38.2; that sandbox interpreter has no OpenSSL module, so the network audit step was not rerun for this slice. Python 3.11 was not substituted in either run.
 
 ## Passing checks
 
 | Check | Result |
 | --- | --- |
 | Ruff lint + format check | Passed |
-| Strict mypy | Passed; 11 source files |
-| Unit tests | 308/308 passed, 1 skipped (skip is conditional on `onnxruntime` being installed) |
-| Branch-aware coverage | 94.43%; required gate 90% retained; forecasting 93–94%, notifications 94–99%, ONNX runtime 94%, weights 87%, webhooks 96%, weather 94% |
+| Strict mypy (`mypy .`) | Passed; 48 source files, tests and tools excluded from strict mode |
+| Unit tests | 388/388 passed, 1 skipped (skip is the opt-in live-network test) |
+| Branch-aware coverage | 93.97%; required gate 90% retained; coordination API 92%, forecasting 93–94%, notifications 94–99%, ONNX runtime 94%, weights 87%, webhooks 96%, weather 94% |
 | Schema/contract tests | 70/70 passed; forecast schema copy byte-identical; tree-registration, camera-view, donation-receipt, ripening-projection, and notification-dispatch contracts validated; ranking weights compared across Python and TypeScript |
 | Coordinator dashboard checks | `pnpm typecheck` clean, 53/53 tests passed across 4 files, production build succeeded (25 modules, ~242 kB JS / 76 kB gzipped) |
 | Operational/security boundary test | 1/1 passed |
 | Third-party dependency audit | Not rerun this slice (sandbox interpreter lacks OpenSSL). Last recorded result: no known vulnerabilities; editable local package skipped |
 | Source distribution + wheel | Both built successfully |
 | Fixture walking path | Coarse-location owner/organization/tree/consent registration, approval/assignment/revocation, minimized export, short-lived access-token revocation, five-stage fixture deletion, plus a separate coordinator-verified outcome, non-sensitive receipt, forecast evaluation, closure, and a two-example synthetic evaluation aggregate with an ineligible model data gate |
-| **Total tests** | **379/379 passed** (308 unit + 70 contract + 1 security), plus 53 dashboard tests |
+| **Total tests** | **459/459 passed** (388 unit + 70 contract + 1 security), 1 conditional skip, plus 53 dashboard tests |
 
 The forecast remains `experimental`, `seasonal_baseline`, human-readiness-review-required, and visible-only. Internal-ripeness and food-safety inference remain false.
 
@@ -102,3 +106,60 @@ Use a Python 3.12 runtime with zlib, SQLite, and SSL/TLS so the normal coverage 
 ## Not evidenced
 
 No Ring device/API/simulator, real observation, residential media, real ROI/masking, live weather request, broker-backed schedule, live Twilio/SNS message, trained fruit-detection ONNX artifact, CV model, reviewed cultivar prior, operational forecast, model-quality result, actual invitation/notification, durable coordinator workflow, production location authorization, real weighed glean/donation, reviewed evaluation-set manifest, model training/promotion, production/cloud verified deletion, participant/pilot, performance, deployment, or release behavior was exercised. The webhook service was only exercised with fixture secrets and synthetic bodies; the weather adapter and scheduler only with recorded-shape synthetic JSON and an in-memory store; notifications only against injected HTTP/SNS fakes; the vision worker only with synthetic pixel grids and no trained ONNX artifact (the runtime smoke test used an untrained constant-output graph); and the dashboard only with fixture data in jsdom and a local dev server. Ripening accuracy and SMS deliverability are unmeasured. Three-second-to-fifteen-minute latency requirements, browser E2E against a live API, and mobile/large-organization performance were not measured. Registration is an in-memory fixture behind typed ports: no FastAPI endpoint, durable database, Cognito authentication, or real owner/organization onboarding ran, and no camera view was approved. The verified weights, receipt, and two-example evaluation aggregate are synthetic in-memory values, not a real held-out evaluation set or model-quality claim. No operational forecast or trained model artifact exists.
+
+## Coordination API and verified reference checkpoint
+
+`services/api/harvestgrid_api/` exposes the ripening scheduler and the volunteer dispatcher over
+HTTP (`docs/api.md`): `POST /v1/forecasting/trigger`, `GET /v1/forecasting/{tree_id}/projection`,
+`POST /v1/notifications/dispatch`, and `/healthz`.
+
+The API is fixture-deployed but not fake-behaved. Role checks and organization scoping are real:
+another organization's tree returns the same `404` as a missing tree, a volunteer role cannot
+read projections, and `approved_by` is taken from the authenticated actor, never the request.
+Both `POST` routes require an `Idempotency-Key`: a replay returns the stored response with
+`Idempotent-Replay: true` and does not tick the weather provider or send an SMS again, while a
+changed body on the same key is `409 idempotency_key_reused`. A *different* key does not bypass
+notification suppression, because the ledger key `glean/state/recipient/template_version` still
+blocks a second notice about the same glean. Dispatch responses contain digests, never bodies or
+phone numbers, and the glean's restricted address/access note is used only as a leak marker —
+a coordinator note that repeats it causes the message to be dropped rather than sent.
+
+`WorkerBackendUnavailable` is translated to `503 worker_backend_unavailable`, so a deployment
+without a broker fails in the open instead of reporting a queued job. Every response carries an
+`X-Request-Id` ULID that also appears in error documents, and unexpected failures collapse to a
+generic `500` with no internals.
+
+Tests drive the application through `packages/testkit/harvestgrid_testkit/asgi.py`, a small
+synchronous ASGI driver. The sandbox interpreter has no `_ssl`, so anyio's asyncio backend — and
+therefore `starlette.testclient` — cannot even import. Rather than skip the slice, every
+dependency and route handler is a coroutine and the blocking service calls run through
+`asyncio.to_thread`; `RequestIdMiddleware` is a pure ASGI middleware rather than
+`BaseHTTPMiddleware`, which would spawn an anyio task group per request. `tests/unit/test_api_scheduler.py`
+and `tests/unit/test_api_notifications.py` cover 202/404/403/401/409/422/503 paths, idempotent
+replays, cross-organization isolation, quiet hours, per-recipient daily caps, duplicate
+suppression, provider failure, and leak-marker rejection.
+
+### Reference checkpoint
+
+`packages/vision/weights/manifest.json` now declares `fruit-quality-yolov8n-320-v1` as `ready`
+alongside the still-`blocked` `plum-yolov8n-int8-v1`. It is a real, trained YOLOv8n
+fruit-quality detector (12 144 721 bytes, SHA-256 `c76ccd5e…070b6`, 8 fresh/rotten classes,
+320×320 input) fetched from a pinned upstream commit through a source archive whose own digest is
+also verified. `tools/fetch_weights.py fetch|install-archive` refuses to install it without
+`--accept-license AGPL-3.0-only`, because the ONNX metadata records Ultralytics' AGPL-3.0 license
+even though the upstream repository claims MIT. No weight bytes are committed; the sidecar records
+the artifact digest, archive digest and member, license, class names, and input size.
+
+`tools/verify_vision.py` loads the installed artifact through `YoloOnnxDetector` and runs it on a
+real photograph behind a privacy ROI polygon plus an exclusion mask built by
+`harvestgrid_domain.roi.allowed_cells`. The recorded run in
+`evidence/vision-artifact-verification.json` (480×360 frame grid, sample `train_batch0.jpg` from
+the same pinned archive, sample not committed) reports 7 detections on the full frame, 4 after the
+ROI polygon, and 3 after the exclusion mask, with no kept box centred outside the ROI. That is
+inference against real weights and real masking, not a synthetic fixture.
+
+The checkpoint is **not** an operational model and `approved_for_operational_use` stays `false`:
+it has no plum class, its classes are fresh/rotten quality labels, its evaluation is the upstream
+author's own split, and it was never evaluated on HarvestGrid sites, seasons, or privacy
+requirements. `docs/models/fruit-quality-yolov8n-320-v1.md` records all of that. The plum detector
+remains blocked for lack of a consented dataset.
