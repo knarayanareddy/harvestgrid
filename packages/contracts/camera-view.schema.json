@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harvestgrid.example/schemas/camera-view-v1.json",
+  "title": "HarvestGrid camera view version",
+  "description": "Owner-drawn ROI and privacy masks for one camera view version. Geometry is normalized to the reference frame; exact addresses, coordinates, raw media, and person metadata are not permitted fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "view_id",
+    "tree_id",
+    "device_id",
+    "version",
+    "status",
+    "roi",
+    "masks",
+    "reference_crop_sha256",
+    "frame",
+    "effective_roi_fraction",
+    "forecasting_active",
+    "privacy_mask_required",
+    "person_or_vehicle_detection_enabled",
+    "exact_address_included",
+    "raw_media_included"
+  ],
+  "properties": {
+    "contract_version": { "const": "camera-view-v1" },
+    "view_id": { "$ref": "#/$defs/identifier" },
+    "tree_id": { "$ref": "#/$defs/identifier" },
+    "device_id": { "$ref": "#/$defs/identifier" },
+    "version": { "type": "integer", "minimum": 0 },
+    "status": {
+      "enum": ["draft", "owner_approved", "approved", "rejected", "invalidated"]
+    },
+    "roi": { "$ref": "#/$defs/polygon" },
+    "masks": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "polygon"],
+        "properties": {
+          "kind": {
+            "enum": ["neighbor_property", "public_sidewalk", "street", "other_unrelated"]
+          },
+          "polygon": { "$ref": "#/$defs/polygon" }
+        }
+      }
+    },
+    "reference_crop_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 16, "maximum": 8192 },
+        "height": { "type": "integer", "minimum": 16, "maximum": 8192 }
+      }
+    },
+    "effective_roi_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+    "forecasting_active": { "type": "boolean" },
+    "privacy_mask_required": { "type": "boolean" },
+    "person_or_vehicle_detection_enabled": { "const": false },
+    "exact_address_included": { "const": false },
+    "raw_media_included": { "const": false }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^\\S(?:.*\\S)?$"
+    },
+    "point": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "number", "minimum": 0, "maximum": 1 },
+        { "type": "number", "minimum": 0, "maximum": 1 }
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "polygon": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 128,
+      "items": { "$ref": "#/$defs/point" }
+    }
+  }
+}

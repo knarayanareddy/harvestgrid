@@ -1,6 +1,6 @@
 # HarvestGrid validation record
 
-Recorded 2026-10-23. Earlier slices were validated under source-built CPython 3.12.12 with zlib, SQLite, and OpenSSL support, including the dependency audit. The `FR-HG-001` onboarding revalidation ran on 2026-10-23 under source-built CPython 3.12.12 with zlib 1.3.1 and SQLite 3.38.2; that sandbox interpreter has no OpenSSL module, so the network audit step was not rerun for this slice. Python 3.11 was not substituted in either run.
+Recorded 2026-10-24. ROI, Ring webhook, weather, feature-extraction, and coordinator-dashboard slices were validated on 2026-10-24 under the same source-built CPython 3.12.12; the interpreter still has no `_ssl` module, so the dependency audit was not rerun. The dashboard was additionally validated with Node 22, pnpm 10.15.0, TypeScript 5.9.3, Vite 8.3.5, and Vitest 5.0.5. Earlier slices were validated under source-built CPython 3.12.12 with zlib, SQLite, and OpenSSL support, including the dependency audit. The `FR-HG-001` onboarding revalidation ran on 2026-10-23 under source-built CPython 3.12.12 with zlib 1.3.1 and SQLite 3.38.2; that sandbox interpreter has no OpenSSL module, so the network audit step was not rerun for this slice. Python 3.11 was not substituted in either run.
 
 ## Passing checks
 
@@ -8,14 +8,15 @@ Recorded 2026-10-23. Earlier slices were validated under source-built CPython 3.
 | --- | --- |
 | Ruff lint + format check | Passed |
 | Strict mypy | Passed; 11 source files |
-| Unit tests | 68/68 passed |
-| Branch-aware domain + matching coverage | 93.83%; required gate 90% retained; onboarding 99%, onboarding adapters 100% |
-| Schema/contract tests | 26/26 passed; forecast schema copy byte-identical; tree-registration projection validated against `packages/contracts/tree-registration.schema.json` |
+| Unit tests | 153/153 passed |
+| Branch-aware coverage | 94.16%; required gate 90% retained; domain 100%, features_v1 100%, webhooks 96%, weather 94%, vision worker 93%, webhook server 76% (the stdlib request-handler shell is exercised through its real socket path) |
+| Schema/contract tests | 46/46 passed; forecast schema copy byte-identical; tree-registration, camera-view, and donation-receipt projections validated against their JSON Schemas; ranking weights compared across Python and TypeScript |
+| Coordinator dashboard checks | `pnpm typecheck` clean, 53/53 tests passed across 4 files, production build succeeded (25 modules, ~242 kB JS / 76 kB gzipped) |
 | Operational/security boundary test | 1/1 passed |
 | Third-party dependency audit | Not rerun this slice (sandbox interpreter lacks OpenSSL). Last recorded result: no known vulnerabilities; editable local package skipped |
 | Source distribution + wheel | Both built successfully |
 | Fixture walking path | Coarse-location owner/organization/tree/consent registration, approval/assignment/revocation, minimized export, short-lived access-token revocation, five-stage fixture deletion, plus a separate coordinator-verified outcome, non-sensitive receipt, forecast evaluation, closure, and a two-example synthetic evaluation aggregate with an ineligible model data gate |
-| **Total tests** | **95/95 passed** (68 unit + 26 contract + 1 security) |
+| **Total tests** | **200/200 passed** (153 unit + 46 contract + 1 security), plus 53 dashboard tests |
 
 The forecast remains `experimental`, `seasonal_baseline`, human-readiness-review-required, and visible-only. Internal-ripeness and food-safety inference remain false.
 
@@ -37,14 +38,35 @@ Camera-collection and organizational-operations consent are both mandatory and s
 
 Contract tests validate the serialized tree projection against a JSON Schema that forbids address, coordinate, and raw-media fields; they also pin the error-code catalogue, consent policy versions, and the canonical cultivar gate (100 tree-season sequences, 20 sites, held-out site/season splits). Unit tests cover happy paths plus missing/expired/wrong-actor/stale-policy consent, authentication, organization suspension, wrong-organization membership, cohort mismatch, unsupported cultivar, species mismatch, bloom-date bounds, geohash precision, conflicting replays, and store compare-and-set failures.
 
+## ROI, Ring webhook, weather, and feature-extraction slices
+
+`packages/domain/harvestgrid_domain/roi.py` makes a camera view an explicit, versioned artifact. A draft becomes `approved` only after owner approval *and* coordinator approval at the expected versions; rejection, stale versions, out-of-range geometry, a self-intersecting polygon, an oversized ROI, or a mask that covers the whole ROI keeps collection blocked with a stable error code. Twenty `ROI_ERROR_CODES` cover the failure surface. Masks are subtracted from the ROI geometry, not applied after sampling, so `allowed_cells` never yields a neighbour-property, sidewalk, or street cell. `view_document()` serializes an approved view that the camera-view JSON Schema validates; the schema forbids exact addresses, coordinates, raw-media URIs, and person/vehicle detection, and the tests confirm each of those rejections.
+
+`services/ring-adapter/` implements the webhook ingress contract. Requests are checked in a fixed order: method/path, content type, a 64 KB cap, HMAC-SHA256 over `sha256(timestamp + "." + raw_body)` with a ±5-minute window, JSON parsing, a token bucket (30 burst, 0.5/s), event-id deduplication, then payload-hash deduplication. Valid events enqueue a media job and acknowledge inside the five-second budget; invalid signatures return 401 without creating a job, replays return 409, and rate limits return 429 with `Retry-After`. Forbidden keys (`person`, `license_plate`, `address`, and peers) are rejected outright, so surveillance metadata cannot enter the pipeline even by accident. The stdlib HTTP shell exposes `/healthz` and one POST path, answers unknown paths with 404, wrong methods with 405 plus `Allow`, and refuses to start without a `RING_WEBHOOK_SECRET` of at least 32 characters. All tests use fixture secrets and a fake clock; no Ring device or credential was involved.
+
+`packages/weather-client/harvestgrid_weather/open_meteo.py` accepts geohash precision 4-5 only, truncates coordinates to one decimal place, and records `exact_coordinates_included: false` in provenance. It bounds ranges to 366 days, limits forecasts to the provider's 16-day horizon, keeps missing daily values as `None` instead of zero, computes growing-degree-days from a 5 °C base, retries transient 5xx responses with bounded backoff, surfaces 429 with `Retry-After`, and caches responses for six hours. The transport is injected, so every test runs offline against synthetic provider JSON.
+
+`packages/vision/harvestgrid_vision/` produces the 16-column `features_v1` row from an approved, already-masked view. Frames failing registration, luminance, contrast, ROI-coverage, or composite quality gates are rejected with reason codes and emit no feature row (`feature_row()` returns `None`), so a bad frame cannot look like a zero-fruit count. Missing values are `-1.0`. Detections are 4-connected components above an area floor; counts carry lower/upper bounds and area percentiles. `HeuristicClusterDetector` is labelled `heuristic_fixture`, `OnnxDetector` raises `InferenceBackendUnavailable` rather than pretending to run a model, and every observation hard-codes `internal_ripeness_inferred`, `food_safety_inferred`, `disease_inferred`, and `raw_media_included` to `false`.
+
+## Coordinator dashboard
+
+`apps/web` is a React 19 + Vite + TypeScript single-page coordinator dashboard. Its `CoordinatorApi` port exposes only board loading, assignment approval, and receipt recording — there is no method that could return an address, raw media, or Ring data. The default `FixtureCoordinatorApi` renders a persistent `FIXTURE DATA` banner and a live-mode switch that is opt-in through `VITE_DEMO_MODE`.
+
+Matching re-implements the hard filters and the five SPEC §9.2 weights in the browser so the coordinator sees the same eligibility result before submitting. A contract test parses both `engine.py` and `matching.ts` and fails if the weights diverge. Ineligible volunteers receive `score: null`, never a low score; the deterministic order is descending score, then the server tie key, then volunteer id. Approval stays disabled until owner approval is current, coordinator readiness is confirmed, the glean is in a matchable state, and at least one eligible volunteer is selected.
+
+Receipt entry converts kilogram strings to integer grams before comparing them, so float drift cannot break `accepted + rejected == net`. It rejects over-precise values, weights above 10,000 kg, rejections without a reason, and manual weights entered without coordinator authority and a note. The export projection is checked against `packages/contracts/donation-receipt.schema.json` and contains no address, access note, volunteer, rejection, scale, or evidence field. The access-reveal preview denies non-volunteers, cancelled assignments, inactive consent, missing owner approval, and times outside the reveal window, and caps any grant at two hours or the assignment expiry.
+
 ## Reproduce
 
 ```bash
 make lint typecheck test-unit test-contract test-security build dev
+cd apps/web && corepack pnpm install && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build
 ```
+
+`make test-web` runs the three dashboard checks. The dev server binds `0.0.0.0:3000` and proxies `/v1` to `API_BASE_URL_INTERNAL` (default `http://127.0.0.1:8080`); fixture mode needs no backend.
 
 Use a Python 3.12 runtime with zlib, SQLite, and SSL/TLS so the normal coverage and audit commands are self-contained. Do not skip the audit or run project tests under 3.11.
 
 ## Not evidenced
 
-No Ring device/API/simulator, real observation, residential media, ROI/masking, weather, CV model, cultivar prior, operational forecast, model-quality result, actual invitation/notification, durable coordinator workflow, production location authorization, real weighed glean/donation, reviewed evaluation-set manifest, model training/promotion, production/cloud verified deletion, participant/pilot, performance, deployment, or release behavior was exercised. Registration is an in-memory fixture behind typed ports: no FastAPI endpoint, durable database, Cognito authentication, or real owner/organization onboarding ran, and no camera view was approved. The verified weights, receipt, and two-example evaluation aggregate are synthetic in-memory values, not a real held-out evaluation set or model-quality claim. No operational forecast or trained model artifact exists.
+No Ring device/API/simulator, real observation, residential media, real ROI/masking, live weather request, CV model, cultivar prior, operational forecast, model-quality result, actual invitation/notification, durable coordinator workflow, production location authorization, real weighed glean/donation, reviewed evaluation-set manifest, model training/promotion, production/cloud verified deletion, participant/pilot, performance, deployment, or release behavior was exercised. The webhook service was only exercised with fixture secrets and synthetic bodies; the weather adapter only with recorded-shape synthetic JSON; the vision worker only with synthetic pixel grids and no ONNX artifact; and the dashboard only with fixture data in jsdom and a local dev server. Three-second-to-fifteen-minute latency requirements, browser E2E against a live API, and mobile/large-organization performance were not measured. Registration is an in-memory fixture behind typed ports: no FastAPI endpoint, durable database, Cognito authentication, or real owner/organization onboarding ran, and no camera view was approved. The verified weights, receipt, and two-example evaluation aggregate are synthetic in-memory values, not a real held-out evaluation set or model-quality claim. No operational forecast or trained model artifact exists.

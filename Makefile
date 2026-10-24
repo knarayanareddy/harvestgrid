@@ -3,7 +3,7 @@ UV ?= uv
 PIP_AUDIT ?= $(UV) run pip-audit
 PIP_AUDIT_ARGS ?=
 
-.PHONY: bootstrap setup dev lint typecheck test-unit test-contract test-integration test-e2e test-infra test-security build deploy evidence
+.PHONY: bootstrap setup dev lint typecheck test-unit test-contract test-integration test-e2e test-infra test-security test-web build deploy evidence
 
 bootstrap:
 	$(UV) --version
@@ -21,10 +21,10 @@ lint:
 	$(UV) run ruff format --check .
 
 typecheck:
-	$(UV) run mypy packages/domain packages/matching
+	$(UV) run mypy packages/domain packages/matching packages/vision packages/weather-client services/ring-adapter
 
 test-unit:
-	$(UV) run pytest tests/unit --cov=harvestgrid_domain --cov=harvestgrid_domain_matching --cov-branch --cov-report=term-missing --cov-fail-under=90
+	$(UV) run pytest tests/unit --cov=harvestgrid_domain --cov=harvestgrid_domain_matching --cov=harvestgrid_vision --cov=harvestgrid_weather --cov=harvestgrid_ring_adapter --cov-branch --cov-report=term-missing --cov-fail-under=90
 
 test-contract:
 	$(UV) run pytest tests/contract
@@ -32,6 +32,14 @@ test-contract:
 test-security:
 	$(UV) run pytest tests/security
 	$(PIP_AUDIT) $(PIP_AUDIT_ARGS) --skip-editable
+
+web-install:
+	cd apps/web && corepack pnpm install --frozen-lockfile
+
+test-web:
+	cd apps/web && corepack pnpm typecheck
+	cd apps/web && corepack pnpm test
+	cd apps/web && corepack pnpm build
 
 build:
 	$(UV) build
@@ -41,7 +49,7 @@ test-integration:
 	@exit 1
 
 test-e2e:
-	@echo "BLOCKED: web, actual Ring device/simulator, and coordinator E2E paths are not implemented." >&2
+	@echo "BLOCKED: coordinator web E2E against a live API, an actual Ring device/simulator, and deployed storage are not implemented." >&2
 	@exit 1
 
 test-infra:

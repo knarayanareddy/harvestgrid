@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harvestgrid.example/schemas/donation-receipt-v1.json",
+  "title": "HarvestGrid non-sensitive donation receipt",
+  "description": "The only receipt projection that may leave the organization: no address, access note, raw media, volunteer identity, rejection detail, or scale evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_number",
+    "glean_id",
+    "recipient_id",
+    "accepted_weight_kg",
+    "donation_date"
+  ],
+  "properties": {
+    "receipt_number": { "type": "string", "pattern": "^HG-[0-9A-F]{8,20}$" },
+    "glean_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "recipient_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "accepted_weight_kg": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9][0-9]{0,3})(?:\\.[0-9]{1,3})?$"
+    },
+    "donation_date": { "type": "string", "format": "date" },
+    "crop": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "provenance": { "enum": ["fixture", "live"] }
+  },
+  "not": {
+    "anyOf": [
+      { "required": ["address"] },
+      { "required": ["access_notes"] },
+      { "required": ["raw_media_uri"] },
+      { "required": ["volunteer_id"] },
+      { "required": ["evidence_sha256"] },
+      { "required": ["scale_reference"] },
+      { "required": ["rejection_reasons"] }
+    ]
+  }
+}
