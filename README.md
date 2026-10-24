@@ -47,9 +47,10 @@ Ring webhook, move the ripening slider, and dispatch volunteers.
   `apps/web/`)
 * Local: `make web-dev` → <http://localhost:5173/harvestgrid/>
 * Exactly what Pages serves: `make web-build-demo`
-* Recorded walkthrough: `make demo-record` → `docs/media/harvestgrid-demo.webm`; the scene plan, the
-  recorder, and the DOM tests live together, so selectors cannot drift. See
-  [`docs/demo.md`](./docs/demo.md).
+* Recorded walkthrough: `make demo-record` → `docs/media/harvestgrid-demo.webm` plus a cue sheet; the
+  scene plan, the recorder, and the DOM tests live together, so selectors cannot drift. The
+  coordinator console embeds it in its **Demo Video** tab beside Map View, Yield Forecasts, and
+  Gleaning Dispatch. See [`docs/demo.md`](./docs/demo.md).
 
 `make test-web` runs the dashboard typecheck, tests, and production build. `uv run pytest tests/unit` covers the forecasting scheduler, SMS dispatch, and ONNX runtime; see [`docs/forecasting-scheduler.md`](./docs/forecasting-scheduler.md) and [`docs/notifications.md`](./docs/notifications.md). Unit tests enforce at least 90% branch-aware coverage across the domain, matching, vision, weather, and Ring-adapter packages. `make test-security` runs operational-boundary tests and `pip-audit --skip-editable`; its audit runner needs working SSL/TLS.
 
@@ -76,7 +77,7 @@ Ring device integration, live media processing, model inference, the backend API
 | [`docs/api.md`](./docs/api.md) | API routes, idempotency, error codes, fixture tokens |
 | [`docs/local-stack.md`](./docs/local-stack.md) | docker compose topology, env wiring, healthchecks, what is fixture |
 | [`docs/demo.md`](./docs/demo.md) | Interactive demo, recorder usage, GitHub Pages deployment |
-| [`apps/web/`](./apps/web/) | React coordinator dashboard (matching board, assignment approval, receipt logging) plus the standalone `VITE_DEMO_MODE` demo |
+| [`apps/web/`](./apps/web/) | React coordinator dashboard (Map View, Yield Forecasts, Gleaning Dispatch, Demo Video) plus the standalone `VITE_DEMO_MODE` demo |
 | [`docker-compose.yml`](./docker-compose.yml) | Local stack: Postgres 16 + PostGIS, Redis 7, FastAPI API, dashboard; see [`docs/local-stack.md`](./docs/local-stack.md) |
 | [`scripts/record-demo.ts`](./scripts/record-demo.ts) | Playwright recorder that walks the demo scene plan and writes `docs/media/harvestgrid-demo.webm` |
 | [`packages/contracts/`](./packages/contracts/) | Byte-identical forecast schema copy plus tree-registration, camera-view, and donation-receipt contracts |

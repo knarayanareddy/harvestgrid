@@ -19,6 +19,14 @@ export interface DemoScene {
   readonly id: string;
   readonly title: string;
   readonly narration: string;
+  /**
+   * Panel the recorder scrolls into view before acting, and the card the dashboard's Demo Video tab
+   * pairs with the cue. Without it a scene can drive a panel that is off-screen, and the recording
+   * shows a scroll jump instead of the change it is narrating.
+   */
+  readonly panelTestId: string;
+  /** Short label for the scene card in the dashboard's Demo Video tab. */
+  readonly cardTitle: string;
   readonly actions: readonly DemoAction[];
   /** Assertions the recorder verifies before moving on. */
   readonly expect: readonly { readonly testId: string; readonly contains: string }[];
@@ -30,6 +38,8 @@ export const RECORDING_SCENES: readonly DemoScene[] = [
     title: "1 · Tree onboarding and consent",
     narration:
       "A tree is registered with a coarse geohash only. Camera collection needs its own consent — the demo refuses to continue without it.",
+    panelTestId: "onboarding-panel",
+    cardTitle: "Onboarding",
     actions: [
       { kind: "fill", testId: "region-input", value: "Delft south — fixture" },
       { kind: "check", testId: "camera-consent", checked: false },
@@ -45,6 +55,8 @@ export const RECORDING_SCENES: readonly DemoScene[] = [
     title: "2 · Privacy polygon and mask boundary",
     narration:
       "Drag a vertex of the tree ROI, then widen the neighbour mask. Every change resets both approvals, and detections that fall mostly outside the allowed region are dropped.",
+    panelTestId: "privacy-panel",
+    cardTitle: "Privacy ROI Mask",
     actions: [
       { kind: "dragVertex", testId: "roi-vertex-0", dx: 34, dy: 26 },
       { kind: "wait", ms: 500 },
@@ -65,6 +77,8 @@ export const RECORDING_SCENES: readonly DemoScene[] = [
     title: "3 · Open-Meteo ripening curve",
     narration:
       "Warm the weather offset and the growing-degree-day curve advances, moving the stage and the harvest window. The projection stays experimental, with human review required.",
+    panelTestId: "curve-panel",
+    cardTitle: "Open-Meteo Ripening",
     actions: [
       { kind: "range", testId: "warmth-slider", value: "4" },
       { kind: "wait", ms: 800 },
@@ -80,6 +94,8 @@ export const RECORDING_SCENES: readonly DemoScene[] = [
     title: "4 · Volunteer dispatch",
     narration:
       "Confirm readiness, assign two volunteers, and dispatch. The result shows per-recipient outcomes, masked phone numbers, and body digests — never message bodies.",
+    panelTestId: "dispatch-panel",
+    cardTitle: "Volunteer Dispatch",
     actions: [
       { kind: "check", testId: "assign-volunteer-a", checked: true },
       { kind: "check", testId: "assign-volunteer-b", checked: true },

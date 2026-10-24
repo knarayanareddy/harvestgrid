@@ -13,8 +13,13 @@ docker compose up --build
 | `db` | `postgis/postgis:16-3.4` | 5432 | Postgres 16 with PostGIS, named volume `db-data` |
 | `redis` | `redis:7-alpine` | 6379 | Cache only: no persistence, `allkeys-lru`, 256 MB cap |
 | `api` | `services/api/Dockerfile` | 8000 | FastAPI coordination API, one worker |
-| `web` | `apps/web/Dockerfile` (`target: dev`) | 5173 | Vite dev server for the dashboard |
+| `web` | `apps/web/Dockerfile` (`target: dev`, context: repo root) | 5173 | Vite dev server for the dashboard |
 | `web-prod` | `apps/web/Dockerfile` (`target: runtime`) | 8080 | Static bundle behind nginx, profile `static` |
+
+Both web targets build from the **repository root**, not `apps/web`: the console's Demo Video tab
+embeds `docs/media/harvestgrid-demo.webm`, which `vite.config.ts` copies to `dist/media/`. The root
+`.dockerignore` keeps `docs/media` in the build context for that reason; building from `apps/web`
+alone would produce an image whose video tab reports the recording as missing.
 
 ```bash
 open http://localhost:5173        # dashboard

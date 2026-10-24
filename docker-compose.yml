@@ -86,8 +86,9 @@ services:
 
   web:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      # Repository root, not `apps/web`: the bundle embeds docs/media/harvestgrid-demo.webm.
+      context: .
+      dockerfile: apps/web/Dockerfile
       target: dev
       args:
         VITE_DEMO_MODE: ${VITE_DEMO_MODE:-true}
@@ -101,10 +102,12 @@ services:
       - "${WEB_PORT:-5173}:5173"
     volumes:
       # Live editing without a rebuild. The named volume keeps the container's own node_modules
-      # (built for the container's platform) from being shadowed by the host's.
-      - ./apps/web/src:/app/src:ro
-      - ./apps/web/tests:/app/tests:ro
-      - web-node-modules:/app/node_modules
+      # (built for the container's platform) from being shadowed by the host's. The media
+      # directory is mounted too, so a fresh `make demo-record` shows up without an image rebuild.
+      - ./apps/web/src:/repo/apps/web/src:ro
+      - ./apps/web/tests:/repo/apps/web/tests:ro
+      - ./docs/media:/repo/docs/media:ro
+      - web-node-modules:/repo/apps/web/node_modules
     depends_on:
       api:
         condition: service_healthy
@@ -116,8 +119,8 @@ services:
   web-prod:
     profiles: ["static"]
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/web/Dockerfile
       target: runtime
       args:
         VITE_DEMO_MODE: "true"
