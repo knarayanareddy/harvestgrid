@@ -14,6 +14,7 @@
 import { RECORDING_SCENES } from "./recordingPlan";
 
 export const DEMO_VIDEO_NAME = "harvestgrid-demo.webm";
+export const DEMO_VIDEO_MP4_NAME = "harvestgrid-demo.mp4";
 export const DEMO_CUE_SHEET_NAME = "harvestgrid-demo.scenes.json";
 
 /** One scene's position in the video, as written by the recorder. */
@@ -43,6 +44,7 @@ export function mediaUrl(name: string): string {
 }
 
 export const DEMO_VIDEO_URL = mediaUrl(DEMO_VIDEO_NAME);
+export const DEMO_VIDEO_MP4_URL = mediaUrl(DEMO_VIDEO_MP4_NAME);
 export const DEMO_CUE_SHEET_URL = mediaUrl(DEMO_CUE_SHEET_NAME);
 
 /**

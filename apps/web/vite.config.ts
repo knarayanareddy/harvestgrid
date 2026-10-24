@@ -29,7 +29,7 @@ const MEDIA_SOURCE = resolve(APP_ROOT, "../../docs/media");
  * A missing `docs/media` is not fatal — a checkout that has not recorded the video yet still
  * builds, and the Demo Video tab says the recording is absent instead of rendering a dead player.
  */
-const PUBLISHED_MEDIA = /\.(webm|scenes\.json)$/;
+const PUBLISHED_MEDIA = /\.(webm|mp4|scenes\.json)$/;
 
 function publishedMedia(): readonly string[] {
   try {
@@ -44,6 +44,7 @@ function publishedMedia(): readonly string[] {
 
 const MEDIA_TYPES: Readonly<Record<string, string>> = {
   ".webm": "video/webm",
+  ".mp4": "video/mp4",
   ".json": "application/json; charset=utf-8",
 };
 

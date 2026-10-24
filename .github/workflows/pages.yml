@@ -11,6 +11,7 @@ on:
       - "apps/web/**"
       # The console's Demo Video tab embeds these; re-recording must redeploy the page.
       - "docs/media/harvestgrid-demo.webm"
+      - "docs/media/harvestgrid-demo.mp4"
       - "docs/media/harvestgrid-demo.scenes.json"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
@@ -82,6 +83,8 @@ jobs:
           # The Demo Video tab embeds docs/media/; a bundle without it renders a dead tab.
           test -s dist/media/harvestgrid-demo.webm \
             || { echo "::error::dist/media/harvestgrid-demo.webm missing (record it: make demo-record)"; exit 1; }
+          test -s dist/media/harvestgrid-demo.mp4 \
+            || { echo "::error::dist/media/harvestgrid-demo.mp4 missing"; exit 1; }
           test -s dist/media/harvestgrid-demo.scenes.json \
             || { echo "::error::cue sheet missing; scene cards cannot sync without it"; exit 1; }
           node -e '

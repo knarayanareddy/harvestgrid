@@ -36,18 +36,22 @@ still stores state in process — no migration and no Redis client exist yet, an
 says so. See [`docs/local-stack.md`](./docs/local-stack.md) for the env wiring, healthchecks, and
 troubleshooting.
 
-### Interactive demo
+### Interactive demo & demo video
 
 `VITE_DEMO_MODE=true` renders a standalone, backend-free demo with an in-browser fixture store:
 register a tree and grant camera consent, drag the privacy ROI and mask boundary, replay a signed
 Ring webhook, move the ripening slider, and dispatch volunteers.
 
-* Live page: <https://knarayanareddy.github.io/harvestgrid/> (deployed by
+* **Live page:** <https://knarayanareddy.github.io/harvestgrid/> (deployed by
   [`.github/workflows/pages.yml`](./.github/workflows/pages.yml) from every `main` push touching
   `apps/web/`)
-* Local: `make web-dev` → <http://localhost:5173/harvestgrid/>
-* Exactly what Pages serves: `make web-build-demo`
-* Recorded walkthrough: `make demo-record` → `docs/media/harvestgrid-demo.webm` plus a cue sheet; the
+* **Live Demo Video (Ryan Neural Voiceover):** <https://knarayanareddy.github.io/harvestgrid/#video> (opens the **Demo Video** tab directly)
+* **Direct WebM walkthrough:** [`docs/media/harvestgrid-demo.webm`](./docs/media/harvestgrid-demo.webm) (4.7 MB, 1280×900, VP8 + Opus)
+* **Direct MP4 walkthrough:** [`docs/media/harvestgrid-demo.mp4`](./docs/media/harvestgrid-demo.mp4) (3.3 MB, 1280×900, H.264 + AAC)
+* **Voiceover audio:** [`docs/media/harvestgrid-narration.mp3`](./docs/media/harvestgrid-narration.mp3) (Ryan Neural)
+* **Local:** `make web-dev` → <http://localhost:5173/harvestgrid/>
+* **Exactly what Pages serves:** `make web-build-demo`
+* **Recorded walkthrough:** `make demo-record` → `docs/media/harvestgrid-demo.webm` plus a cue sheet; the
   scene plan, the recorder, and the DOM tests live together, so selectors cannot drift. The
   coordinator console embeds it in its **Demo Video** tab beside Map View, Yield Forecasts, and
   Gleaning Dispatch. See [`docs/demo.md`](./docs/demo.md).

@@ -45,13 +45,23 @@ function panelIdOf(tab: TabId): string {
   return `panel-${tab}`;
 }
 
+function getInitialTab(): TabId {
+  if (typeof window !== "undefined") {
+    const hash = window.location.hash.toLowerCase();
+    if (hash === "#video" || hash === "#demo-video" || hash === "#tab-video") return "video";
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") === "video") return "video";
+  }
+  return "dispatch";
+}
+
 export function App({ api }: { readonly api: CoordinatorApi }): ReactElement {
   const [load, setLoad] = useState<LoadState>({ status: "loading" });
   const [approvalMessage, setApprovalMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<DonationReceipt | null>(null);
   const [errors, setErrors] = useState<readonly FieldError[]>([]);
-  const [tab, setTab] = useState<TabId>("dispatch");
+  const [tab, setTab] = useState<TabId>(getInitialTab);
   const tabRefs = useRef<Partial<Record<TabId, HTMLButtonElement | null>>>({});
 
   const selectTab = (next: TabId): void => {
@@ -91,6 +101,18 @@ export function App({ api }: { readonly api: CoordinatorApi }): ReactElement {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onHashChange = (): void => {
+      const hash = window.location.hash.toLowerCase();
+      if (hash === "#video" || hash === "#demo-video" || hash === "#tab-video") {
+        setTab("video");
+      }
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   const approve = async (volunteerIds: readonly string[]): Promise<void> => {
     if (load.status !== "ready") return;
@@ -159,6 +181,23 @@ export function App({ api }: { readonly api: CoordinatorApi }): ReactElement {
             connected. Nothing here is live evidence.
           </p>
         ) : null}
+        <div style={{ margin: "0.75rem 0", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => setTab("video")}
+            style={{
+              padding: "0.4rem 0.85rem",
+              fontSize: "0.9rem",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.4rem",
+              cursor: "pointer",
+            }}
+          >
+            🎥 Watch Demo Video (38s Walkthrough with Ryan Neural Voice)
+          </button>
+        </div>
       </header>
       <nav className="tabs-nav" aria-label="Coordinator views">
         <div

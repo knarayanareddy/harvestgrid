@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState, type ReactElement } from "rea
 import {
   activeSceneIndex,
   DEMO_VIDEO_URL,
+  DEMO_VIDEO_MP4_URL,
   FALLBACK_SCENE_CARDS,
   formatTimestamp,
   loadCueSheet,
@@ -112,7 +113,8 @@ export function DemoVideo({
             onError={() => setMedia({ status: "missing" })}
           >
             <source src={videoUrl} type="video/webm" />
-            Your browser cannot play WebM video. The scene cards below summarise the same
+            <source src={DEMO_VIDEO_MP4_URL} type="video/mp4" />
+            Your browser cannot play video. The scene cards below summarise the same
             walkthrough.
           </video>
         )}
@@ -121,7 +123,13 @@ export function DemoVideo({
       <p className="video-caption" id="demo-video-caption" data-testid="demo-video-caption">
         {media.status === "ready" ? "Playing" : "Walkthrough"} · fixture data ·{" "}
         {Number.isFinite(totalMs) ? `${formatTimestamp(totalMs)} total` : "timing unknown"} ·{" "}
-        {scenes.length} scenes · silent recording, transcript beside each card
+        {scenes.length} scenes · Ryan (Neural) voiceover narration
+      </p>
+
+      <p className="video-downloads" style={{ margin: "0.5rem 0 1rem", fontSize: "0.9rem" }}>
+        <strong>Direct video files:</strong>{" "}
+        <a href={videoUrl} download>Download WebM (4.7 MB)</a> ·{" "}
+        <a href={DEMO_VIDEO_MP4_URL} download>Download MP4 (3.3 MB)</a>
       </p>
 
       <ol className="scene-cards" data-testid="scene-cards">
