@@ -20,3 +20,5 @@ models/artifacts/
 *.onnx
 *.pt
 *.pth
+node_modules/
+.pnpm-store/

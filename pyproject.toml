@@ -23,6 +23,9 @@ build-backend = "hatchling.build"
 packages = [
   "packages/domain/harvestgrid_domain",
   "packages/matching/harvestgrid_domain_matching",
+  "packages/vision/harvestgrid_vision",
+  "packages/weather-client/harvestgrid_weather",
+  "services/ring-adapter/harvestgrid_ring_adapter",
 ]
 
 [tool.uv]
@@ -31,6 +34,9 @@ package = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--strict-markers"
+markers = [
+  "network: opt-in tests that contact a real external service (skipped by default)",
+]
 
 [tool.ruff]
 target-version = "py312"
@@ -45,4 +51,10 @@ select = ["E", "F", "I", "B", "UP", "S"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["packages/domain", "packages/matching"]
+files = [
+  "packages/domain",
+  "packages/matching",
+  "packages/vision",
+  "packages/weather-client",
+  "services/ring-adapter",
+]
