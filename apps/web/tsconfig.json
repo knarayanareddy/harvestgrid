@@ -17,7 +17,10 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "noEmit": true,
+    // `scripts/record-demo.ts` is executed by Node's type stripping, which needs real `.ts`
+    // specifiers. Hooks (and this test-only project) never emit, so the flag is safe here.
+    "allowImportingTsExtensions": true,
     "types": ["vitest/globals", "node"]
   },
-  "include": ["src", "tests", "vite.config.ts"]
+  "include": ["src", "tests", "vite.config.ts", "../../scripts/record-demo.ts"]
 }

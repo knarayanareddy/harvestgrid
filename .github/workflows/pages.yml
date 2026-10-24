@@ -1,0 +1,113 @@
+name: Deploy demo to GitHub Pages
+
+# Publishes the standalone demo rendition of the dashboard to
+# https://knarayanareddy.github.io/harvestgrid/ — the interactive fixture build that judges can
+# click through without a backend, a database, or an account.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never run two deploys at once; keep the newest queued but cancel a superseded in-flight build.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build demo bundle
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/web/package.json
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck and unit tests
+        working-directory: apps/web
+        run: |
+          pnpm typecheck
+          pnpm test
+
+      - name: Build the demo
+        working-directory: apps/web
+        env:
+          # Fixture store in the browser; no API. `base` must match the project-page URL.
+          VITE_DEMO_MODE: "true"
+          VITE_BASE_PATH: "/harvestgrid/"
+        run: pnpm build
+
+      - name: Verify the bundle is deployable at /harvestgrid/
+        working-directory: apps/web
+        run: |
+          set -eu
+          index=dist/index.html
+          test -f "$index" || { echo "::error::dist/index.html missing"; exit 1; }
+          grep -q '/harvestgrid/assets/' "$index" \
+            || { echo "::error::assets are not prefixed with /harvestgrid/"; exit 1; }
+          # A project page served from a subpath must not contain root-relative asset URLs.
+          if grep -Eq '(src|href)="/(assets|src)/' "$index"; then
+            echo "::error::found root-relative asset URLs; set VITE_BASE_PATH=/harvestgrid/"; exit 1
+          fi
+          # The demo entry must be in the bundle, not a redirect to the live API app.
+          grep -rq 'FIXTURE' dist/assets/*.js \
+            || { echo "::error::demo fixture bundle not found"; exit 1; }
+          du -sh dist
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload bundle
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+          retention-days: 1
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Summary
+        run: |
+          {
+            echo "### HarvestGrid demo deployed"
+            echo ""
+            echo "- URL: ${{ steps.deployment.outputs.page_url }}"
+            echo "- Mode: fixture data, in-browser store, no backend"
+            echo "- Build: \`VITE_DEMO_MODE=true VITE_BASE_PATH=/harvestgrid/\`"
+          } >> "$GITHUB_STEP_SUMMARY"

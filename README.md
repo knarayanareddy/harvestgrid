@@ -1,7 +1,7 @@
 # HarvestGrid
 
 **Track:** Ring
-**Status:** registration, forecast, matching, operations, verified outcome, synthetic evaluation, privacy lifecycle, ROI masking, Ring webhook ingress, weather adapter, scheduled ripening curves, SMS dispatch, ONNX inference runtime, feature extraction, and coordinator dashboard validated against fixtures; live Ring/media/model/provider operations not implemented
+**Status:** registration, forecast, matching, operations, verified outcome, synthetic evaluation, privacy lifecycle, ROI masking, Ring webhook ingress, weather adapter, scheduled ripening curves, SMS dispatch, ONNX inference runtime, feature extraction, coordinator dashboard, a local docker compose stack, and a standalone interactive demo validated against fixtures; live Ring/media/model/provider operations, persistence, and container deploys not implemented
 **Agent entry point:** [`AGENTS.md`](./AGENTS.md)
 
 HarvestGrid is intended to support privacy-preserving, coordinator-reviewed backyard harvest logistics. Visual estimates cannot establish internal ripeness or food safety.
@@ -20,12 +20,40 @@ make build
 cd apps/web
 corepack pnpm install
 corepack pnpm typecheck && corepack pnpm test && corepack pnpm build
-corepack pnpm dev          # http://localhost:3000, fixture data by default
+corepack pnpm dev          # http://localhost:5173/harvestgrid/, fixture data by default
 ```
+
+### One command for the whole stack
+
+```bash
+cp .env.example .env       # optional; every value has a fixture-safe default
+docker compose up --build  # Postgres 16 + PostGIS :5432, Redis 7 :6379, API :8000, dashboard :5173
+```
+
+The dashboard is at <http://localhost:5173> and the API at <http://localhost:8000/docs>. PostGIS and
+Redis are provisioned, healthy, and passed to the API as `DATABASE_URL`/`REDIS_URL`, but the API
+still stores state in process — no migration and no Redis client exist yet, and the compose file
+says so. See [`docs/local-stack.md`](./docs/local-stack.md) for the env wiring, healthchecks, and
+troubleshooting.
+
+### Interactive demo
+
+`VITE_DEMO_MODE=true` renders a standalone, backend-free demo with an in-browser fixture store:
+register a tree and grant camera consent, drag the privacy ROI and mask boundary, replay a signed
+Ring webhook, move the ripening slider, and dispatch volunteers.
+
+* Live page: <https://knarayanareddy.github.io/harvestgrid/> (deployed by
+  [`.github/workflows/pages.yml`](./.github/workflows/pages.yml) from every `main` push touching
+  `apps/web/`)
+* Local: `make web-dev` → <http://localhost:5173/harvestgrid/>
+* Exactly what Pages serves: `make web-build-demo`
+* Recorded walkthrough: `make demo-record` → `docs/media/harvestgrid-demo.webm`; the scene plan, the
+  recorder, and the DOM tests live together, so selectors cannot drift. See
+  [`docs/demo.md`](./docs/demo.md).
 
 `make test-web` runs the dashboard typecheck, tests, and production build. `uv run pytest tests/unit` covers the forecasting scheduler, SMS dispatch, and ONNX runtime; see [`docs/forecasting-scheduler.md`](./docs/forecasting-scheduler.md) and [`docs/notifications.md`](./docs/notifications.md). Unit tests enforce at least 90% branch-aware coverage across the domain, matching, vision, weather, and Ring-adapter packages. `make test-security` runs operational-boundary tests and `pip-audit --skip-editable`; its audit runner needs working SSL/TLS.
 
-Ring device integration, live media processing, model inference, the backend API for live dashboard mode, operational forecasts, persistence, notifications, infrastructure, E2E, and deployment targets intentionally fail or stay in fixture mode while absent.
+Ring device integration, live media processing, model inference, the backend API for live dashboard mode, operational forecasts, persistence (compose provisions Postgres 16 + PostGIS and Redis 7, but the API opens neither), notifications, cloud infrastructure, E2E, and deployment targets intentionally fail or stay in fixture mode while absent.
 
 ## Workspace map
 
@@ -46,7 +74,11 @@ Ring device integration, live media processing, model inference, the backend API
 | [`tools/fetch_weights.py`](./tools/fetch_weights.py) | Verifies and installs a manifest-declared ONNX artifact (download, archive, or local) |
 | [`tools/verify_vision.py`](./tools/verify_vision.py) | Runs an installed artifact on a real photo and proves ROI masking filters boxes |
 | [`docs/api.md`](./docs/api.md) | API routes, idempotency, error codes, fixture tokens |
-| [`apps/web/`](./apps/web/) | React coordinator dashboard: matching board, assignment approval, receipt logging |
+| [`docs/local-stack.md`](./docs/local-stack.md) | docker compose topology, env wiring, healthchecks, what is fixture |
+| [`docs/demo.md`](./docs/demo.md) | Interactive demo, recorder usage, GitHub Pages deployment |
+| [`apps/web/`](./apps/web/) | React coordinator dashboard (matching board, assignment approval, receipt logging) plus the standalone `VITE_DEMO_MODE` demo |
+| [`docker-compose.yml`](./docker-compose.yml) | Local stack: Postgres 16 + PostGIS, Redis 7, FastAPI API, dashboard; see [`docs/local-stack.md`](./docs/local-stack.md) |
+| [`scripts/record-demo.ts`](./scripts/record-demo.ts) | Playwright recorder that walks the demo scene plan and writes `docs/media/harvestgrid-demo.webm` |
 | [`packages/contracts/`](./packages/contracts/) | Byte-identical forecast schema copy plus tree-registration, camera-view, and donation-receipt contracts |
 | [`ui/`](./ui/) | Design tokens, wireframes, and static wireframe reference |
 | [`content/cultivars/`](./content/cultivars/) | Placeholder boundary; no cultivar priors supplied |

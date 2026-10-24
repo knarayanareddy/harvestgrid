@@ -1,0 +1,308 @@
+#!/usr/bin/env node
+/**
+ * Record the HarvestGrid demo walkthrough with Playwright.
+ *
+ * The script drives the interactive demo (`VITE_DEMO_MODE=true`) through the four scenarios in
+ * `apps/web/src/demo/recordingPlan.ts` — tree onboarding and consent, the privacy ROI/mask
+ * boundary with a simulated Ring frame, the Open-Meteo ripening curve, and coordinator-approved
+ * volunteer dispatch — and writes a `.webm` to `docs/media/harvestgrid-demo.webm`.
+ *
+ * Usage:
+ *   pnpm --dir apps/web exec playwright install chromium   # once, needs browser CDN access
+ *   node --experimental-strip-types scripts/record-demo.ts
+ *
+ * Options:
+ *   --base-url <url>   where the demo is served (default http://127.0.0.1:5173/harvestgrid/)
+ *   --output <path>    output file (default docs/media/harvestgrid-demo.webm)
+ *   --headed           show the browser (useful when debugging selectors)
+ *   --selftest         verify the scene plan and the served page without launching a browser
+ *
+ * The recording is silent: Playwright captures video only. Narration lives in the scene plan
+ * (`narration` on each scene) so it can be re-recorded as a voice-over without re-timing the UI.
+ *
+ * Honesty note: the video is a recording of the *fixture* demo. Every frame carries the
+ * FIXTURE DATA banner; no device, weather service, telephony account, or database is involved.
+ * Playwright resolves from `apps/web/node_modules`, because the repository has exactly one Node
+ * project and one lockfile.
+ */
+
+import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+import { RECORDING_SCENES, type DemoAction } from "../apps/web/src/demo/recordingPlan.ts";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(HERE, "..");
+const DEFAULT_OUTPUT = join(ROOT, "docs", "media", "harvestgrid-demo.webm");
+const RAW_DIR = join(ROOT, "docs", "media", ".playwright-raw");
+const VIEWPORT = { width: 1280, height: 900 };
+
+interface PageLike {
+  goto(url: string, options?: { waitUntil?: string }): Promise<unknown>;
+  waitForSelector(selector: string, options?: { timeout?: number }): Promise<unknown>;
+  click(selector: string): Promise<void>;
+  fill(selector: string, value: string): Promise<void>;
+  setChecked(selector: string, checked: boolean): Promise<void>;
+  evaluate<T>(expression: string, argument?: unknown): Promise<T>;
+  mouse: {
+    move(x: number, y: number, options?: { steps?: number }): Promise<void>;
+    down(): Promise<void>;
+    up(): Promise<void>;
+  };
+  waitForTimeout(ms: number): Promise<void>;
+}
+
+interface BrowserContextLike {
+  newPage(): Promise<PageLike>;
+  close(): Promise<void>;
+}
+
+interface BrowserLike {
+  newContext(options: Record<string, unknown>): Promise<BrowserContextLike>;
+  close(): Promise<void>;
+}
+
+interface PlaywrightModule {
+  chromium: { launch(options?: Record<string, unknown>): Promise<BrowserLike> };
+}
+
+export function selector(testId: string): string {
+  return `[data-testid="${testId}"]`;
+}
+
+export function parseArgs(argv: readonly string[]): {
+  baseUrl: string;
+  output: string;
+  headed: boolean;
+  selftest: boolean;
+} {
+  const result = {
+    baseUrl: process.env.DEMO_URL ?? "http://127.0.0.1:5173/harvestgrid/",
+    output: DEFAULT_OUTPUT,
+    headed: false,
+    selftest: false,
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const flag = argv[index];
+    const next = argv[index + 1];
+    if (flag === "--base-url" && next) {
+      result.baseUrl = next;
+      index += 1;
+    } else if (flag === "--output" && next) {
+      result.output = resolve(process.cwd(), next);
+      index += 1;
+    } else if (flag === "--headed") {
+      result.headed = true;
+    } else if (flag === "--selftest") {
+      result.selftest = true;
+    }
+  }
+  if (!result.baseUrl.endsWith("/")) result.baseUrl = `${result.baseUrl}/`;
+  return result;
+}
+
+async function loadPlaywright(): Promise<PlaywrightModule> {
+  const requireFromWeb = createRequire(join(ROOT, "apps", "web", "package.json"));
+  let resolved: string;
+  try {
+    resolved = requireFromWeb.resolve("playwright");
+  } catch {
+    throw new Error(
+      "playwright is not installed. Run: pnpm --dir apps/web install && " +
+        "pnpm --dir apps/web exec playwright install chromium",
+    );
+  }
+  return (await import(pathToFileURL(resolved).href)) as PlaywrightModule;
+}
+
+async function centre(page: PageLike, testId: string): Promise<{ x: number; y: number }> {
+  return page.evaluate<{ x: number; y: number }>(
+    `(() => {
+      const element = document.querySelector(${JSON.stringify(selector(testId))});
+      if (!element) throw new Error("missing " + ${JSON.stringify(testId)});
+      const rect = element.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    })()`,
+  );
+}
+
+async function perform(page: PageLike, action: DemoAction): Promise<void> {
+  switch (action.kind) {
+    case "click":
+      await page.click(selector(action.testId));
+      return;
+    case "check":
+      await page.setChecked(selector(action.testId), action.checked);
+      return;
+    case "fill":
+      await page.fill(selector(action.testId), action.value);
+      return;
+    case "range":
+      await page.evaluate(
+        `(() => {
+          const input = document.querySelector(${JSON.stringify(selector(action.testId))});
+          if (!(input instanceof HTMLInputElement)) throw new Error("missing range");
+          const setter = Object.getOwnPropertyDescriptor(
+            HTMLInputElement.prototype, "value").set;
+          setter.call(input, ${JSON.stringify(action.value)});
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        })()`,
+      );
+      return;
+    case "dragVertex": {
+      const start = await centre(page, action.testId);
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(start.x + action.dx, start.y + action.dy, { steps: 12 });
+      await page.mouse.up();
+      return;
+    }
+    case "wait":
+      await page.waitForTimeout(action.ms);
+      return;
+    case "caption":
+      return;
+  }
+}
+
+async function assertExpectations(page: PageLike, sceneId: string): Promise<void> {
+  const scene = RECORDING_SCENES.find((item) => item.id === sceneId);
+  if (!scene) return;
+  for (const expectation of scene.expect) {
+    await page.waitForSelector(selector(expectation.testId), { timeout: 10_000 });
+    const text = await page.evaluate<string>(
+      `document.querySelector(${JSON.stringify(selector(expectation.testId))}).textContent ?? ""`,
+    );
+    if (!text.toLowerCase().includes(expectation.contains.toLowerCase())) {
+      throw new Error(
+        `scene ${sceneId}: ${expectation.testId} did not contain "${expectation.contains}" (got "${text}")`,
+      );
+    }
+  }
+}
+
+export async function record(options: {
+  baseUrl: string;
+  output: string;
+  headed: boolean;
+  playwright?: PlaywrightModule;
+}): Promise<string> {
+  const playwright = options.playwright ?? (await loadPlaywright());
+  rmSync(RAW_DIR, { recursive: true, force: true });
+  mkdirSync(RAW_DIR, { recursive: true });
+
+  const browser = await playwright.chromium.launch({ headless: !options.headed });
+  try {
+    const context = await browser.newContext({
+      viewport: VIEWPORT,
+      recordVideo: { dir: RAW_DIR, size: VIEWPORT },
+      colorScheme: "light",
+      reducedMotion: "no-preference",
+    });
+    const page = await context.newPage();
+    await page.goto(options.baseUrl, { waitUntil: "domcontentloaded" });
+    await page.waitForSelector(selector("demo-workspace"), { timeout: 30_000 });
+    await page.waitForTimeout(1200);
+
+    for (const scene of RECORDING_SCENES) {
+      console.log(`▶ ${scene.title}`);
+      for (const action of scene.actions) await perform(page, action);
+      await assertExpectations(page, scene.id);
+      await page.waitForTimeout(400);
+    }
+    // A closing beat so the last frame is not the dispatch table mid-scroll.
+    await page.evaluate("window.scrollTo({ top: 0, behavior: 'smooth' })");
+    await page.waitForTimeout(1500);
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+
+  const videos = readdirSync(RAW_DIR).filter((name) => name.endsWith(".webm"));
+  if (videos.length !== 1) {
+    throw new Error(`expected exactly one recording in ${RAW_DIR}, found ${videos.length}`);
+  }
+  mkdirSync(dirname(options.output), { recursive: true });
+  renameSync(join(RAW_DIR, videos[0] as string), options.output);
+  rmSync(RAW_DIR, { recursive: true, force: true });
+  return options.output;
+}
+
+async function selftest(baseUrl: string): Promise<void> {
+  // 1. The plan itself: unique ids, every scene reachable, expectations named.
+  const seen = new Set<string>();
+  for (const scene of RECORDING_SCENES) {
+    for (const action of scene.actions) {
+      if (action.kind === "wait" || action.kind === "caption") continue;
+      if (seen.has(action.testId)) {
+        console.log(`note: ${action.testId} is driven in more than one scene`);
+      }
+      seen.add(action.testId);
+    }
+    if (scene.expect.length === 0) throw new Error(`scene ${scene.id} asserts nothing`);
+  }
+  console.log(`✔ plan: ${RECORDING_SCENES.length} scenes, ${seen.size} controls, all asserting`);
+
+  // 2. The served page: reachable, and the demo bundle is referenced.
+  const response = await fetch(baseUrl);
+  if (!response.ok) throw new Error(`${baseUrl} returned ${response.status}`);
+  const html = await response.text();
+  if (!html.includes("id=\"root\"")) throw new Error("page has no #root element");
+  console.log(`✔ served page: ${baseUrl} (${response.status}, ${html.length} bytes)`);
+
+  // 3. The browser, if it happens to be installed.
+  const cacheHint = join(ROOT, "apps", "web", "node_modules", "playwright-core", ".local-browsers");
+  console.log(
+    existsSync(cacheHint)
+      ? "✔ chromium cache present; run without --selftest to record"
+      : "note: chromium is not installed, so the video cannot be recorded in this environment " +
+          "(run `pnpm --dir apps/web exec playwright install chromium`)",
+  );
+  console.log("Selectors the recorder will use:");
+  for (const scene of RECORDING_SCENES) {
+    console.log(`  ${scene.title}`);
+    console.log(`    ${scene.actions.filter((a) => a.kind !== "wait" && a.kind !== "caption").length} actions, ${scene.expect.length} assertions`);
+  }
+}
+
+function main(): number {
+  const args = parseArgs(process.argv.slice(2));
+  if (args.selftest) {
+    selftest(args.baseUrl)
+      .then(() => console.log("✔ selftest passed"))
+      .catch((error: unknown) => {
+        console.error(`✖ ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 1;
+      });
+    return 0;
+  }
+  record(args)
+    .then((output) => {
+      const bytes = readFileSync(output).length;
+      console.log(`✔ wrote ${output} (${(bytes / 1024).toFixed(0)} kB)`);
+      // Playwright only records VP8 WebM; note the codec so docs do not over-claim.
+      try {
+        execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_name", output], {
+          stdio: "inherit",
+        });
+      } catch {
+        console.log("(ffprobe not installed; skipping codec probe)");
+      }
+    })
+    .catch((error: unknown) => {
+      console.error(`✖ ${error instanceof Error ? error.message : String(error)}`);
+      if (error instanceof Error && error.message.includes("Executable doesn't exist")) {
+        console.error("Run: pnpm --dir apps/web exec playwright install chromium");
+      }
+      process.exitCode = 1;
+    });
+  return 0;
+}
+
+if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}

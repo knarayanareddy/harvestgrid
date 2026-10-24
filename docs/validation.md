@@ -86,7 +86,9 @@ A synthetic constant-output ONNX graph is built inside `tmp_path` during tests t
 
 ## Coordinator dashboard
 
-`apps/web` is a React 19 + Vite + TypeScript single-page coordinator dashboard. Its `CoordinatorApi` port exposes only board loading, assignment approval, and receipt recording — there is no method that could return an address, raw media, or Ring data. The default `FixtureCoordinatorApi` renders a persistent `FIXTURE DATA` banner and a live-mode switch that is opt-in through `VITE_DEMO_MODE`.
+`apps/web` is a React 19 + Vite + TypeScript single-page coordinator dashboard. Its `CoordinatorApi` port exposes only board loading, assignment approval, and receipt recording — there is no method that could return an address, raw media, or Ring data. The default `FixtureCoordinatorApi` renders a persistent `FIXTURE DATA` banner and a live-mode switch that is opt-in through `VITE_DEMO_MODE=live`.
+
+`VITE_DEMO_MODE=true` mounts a separate, standalone demo (`apps/web/src/demo/`) driven by an in-browser `DemoStore`: tree onboarding with explicit camera consent, an ROI/mask polygon editor whose every geometry change resets both approvals, a signed-webhook replay that filters detections by allowed-region coverage, a growing-degree-day ripening curve with a warmth offset, and coordinator-approved dispatch. Twenty-five jsdom tests pin the invariants, including a replay of the recorder's scene plan against the rendered page: approvals invalidate on any vertex or mask edit, dispatch is refused without owner and coordinator approval plus confirmed readiness and at least one assignment, the opted-out volunteer yields `sms_opt_in_required`, 22:30 UTC defers under quiet hours, repeats are `duplicate_suppressed`, and outcomes expose only masked numbers and 64-hex digests. The same fixture banner and the `experimental` / `humanReadinessReviewRequired` labels appear here, because a standalone page is where a fixture screenshot is most likely to be mistaken for live evidence; see [`docs/demo.md`](./demo.md).
 
 Matching re-implements the hard filters and the five SPEC §9.2 weights in the browser so the coordinator sees the same eligibility result before submitting. A contract test parses both `engine.py` and `matching.ts` and fails if the weights diverge. Ineligible volunteers receive `score: null`, never a low score; the deterministic order is descending score, then the server tie key, then volunteer id. Approval stays disabled until owner approval is current, coordinator readiness is confirmed, the glean is in a matchable state, and at least one eligible volunteer is selected.
 
@@ -99,7 +101,13 @@ make lint typecheck test-unit test-contract test-security build dev
 cd apps/web && corepack pnpm install && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build
 ```
 
-`make test-web` runs the three dashboard checks. The dev server binds `0.0.0.0:3000` and proxies `/v1` to `API_BASE_URL_INTERNAL` (default `http://127.0.0.1:8080`); fixture mode needs no backend.
+```bash
+docker compose config -q          # compose schema + interpolation
+docker compose up -d db redis && docker compose ps
+cd apps/web && corepack pnpm dev  # then: make demo-selftest, or make demo-record with a browser
+```
+
+`make test-web` runs the three dashboard checks. The dev server binds `0.0.0.0:5173` and proxies `/v1` to `API_BASE_URL_INTERNAL` (default `http://127.0.0.1:8000`); fixture mode needs no backend. `base` defaults to `/harvestgrid/`, matching the GitHub Pages deployment, and `make web-build-demo` reproduces that bundle exactly.
 
 Use a Python 3.12 runtime with zlib, SQLite, and SSL/TLS so the normal coverage and audit commands are self-contained. Do not skip the audit or run project tests under 3.11.
 

@@ -1,0 +1,19 @@
+# Keep the build context to sources; the web app and media are built elsewhere.
+.git
+.github
+docs/media
+node_modules
+**/node_modules
+**/.pnpm-store
+apps/web/dist
+**/__pycache__
+**/*.pyc
+.venv
+**/.venv
+.pytest_cache
+.mypy_cache
+.ruff_cache
+coverage
+coverage.xml
+data
+*.webm
