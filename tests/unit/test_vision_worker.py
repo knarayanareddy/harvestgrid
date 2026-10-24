@@ -1,5 +1,6 @@
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 from harvestgrid_domain import (
@@ -15,6 +16,7 @@ from harvestgrid_vision import (
     FEATURE_VERSION,
     FEATURES_V1_COLUMNS,
     MISSING_VALUE,
+    ArtifactError,
     Detection,
     DetectorError,
     ExtractionError,
@@ -23,8 +25,8 @@ from harvestgrid_vision import (
     FeatureExtractionWorker,
     Frame,
     HeuristicClusterDetector,
-    InferenceBackendUnavailable,
-    OnnxDetector,
+    OnnxArtifact,
+    YoloOnnxDetector,
     to_row,
     validate_row,
 )
@@ -312,14 +314,31 @@ def test_detector_rejects_mismatched_allowed_masks() -> None:
     assert detector.detect(frame, empty_mask) == ()
 
 
-def test_onnx_detector_fails_visibly_instead_of_substituting_the_fixture() -> None:
-    with pytest.raises(InferenceBackendUnavailable) as unavailable:
-        OnnxDetector(
-            artifact_path="models/plum-detector.onnx",
-            model_version="plum-frcnn-v1",
-            data_version="plum-consented-2026-10",
+def test_onnx_detector_requires_a_verified_artifact(tmp_path: Path) -> None:
+    luminance = tuple(0.5 for _ in range(GRID[0] * GRID[1]))
+    saturation = tuple(0.1 for _ in range(GRID[0] * GRID[1]))
+    artifact = OnnxArtifact(
+        path=tmp_path / "plum-detector-int8.onnx",
+        sha256="a" * 64,
+        model_version="plum-yolov8n-int8-v1",
+        data_version="plum-consented-2026-10",
+        quantization="int8",
+        training_provenance="owner_consented_plum_dataset_reviewed",
+    )
+    detector = YoloOnnxDetector(artifact=artifact)
+    assert detector.model_version == "plum-yolov8n-int8-v1"
+    with pytest.raises(ArtifactError, match="artifact_missing"):
+        detector.detect(
+            Frame(
+                frame_id="f",
+                captured_at=T0,
+                width=GRID[0],
+                height=GRID[1],
+                luminance=luminance,
+                saturation=saturation,
+            ),
+            tuple(tuple(True for _ in range(GRID[0])) for _ in range(GRID[1])),
         )
-    assert "onnxruntime" in unavailable.value.detail or "ONNX" in unavailable.value.detail
 
 
 def test_features_v1_contract_enforces_column_order_and_sentinels() -> None:

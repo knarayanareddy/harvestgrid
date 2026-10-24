@@ -1,6 +1,6 @@
 # HarvestGrid validation record
 
-Recorded 2026-10-24. ROI, Ring webhook, weather, feature-extraction, and coordinator-dashboard slices were validated on 2026-10-24 under the same source-built CPython 3.12.12; the interpreter still has no `_ssl` module, so the dependency audit was not rerun. The dashboard was additionally validated with Node 22, pnpm 10.15.0, TypeScript 5.9.3, Vite 8.3.5, and Vitest 5.0.5. Earlier slices were validated under source-built CPython 3.12.12 with zlib, SQLite, and OpenSSL support, including the dependency audit. The `FR-HG-001` onboarding revalidation ran on 2026-10-23 under source-built CPython 3.12.12 with zlib 1.3.1 and SQLite 3.38.2; that sandbox interpreter has no OpenSSL module, so the network audit step was not rerun for this slice. Python 3.11 was not substituted in either run.
+Recorded 2026-10-24. The forecasting scheduler, SMS dispatch, and ONNX runtime slices were validated on 2026-10-24 under the same source-built CPython 3.12.12 with zlib 1.3.1 and SQLite 3.38.2, adding `onnxruntime` 1.23.2, `onnx` 1.19.1, and `numpy` 2.3.4 as test-only dev dependencies. The interpreter still has no `_ssl` module, so the dependency audit was not rerun. ROI, Ring webhook, weather, feature-extraction, and coordinator-dashboard slices were validated on 2026-10-24 under the same source-built CPython 3.12.12; the interpreter still has no `_ssl` module, so the dependency audit was not rerun. The dashboard was additionally validated with Node 22, pnpm 10.15.0, TypeScript 5.9.3, Vite 8.3.5, and Vitest 5.0.5. Earlier slices were validated under source-built CPython 3.12.12 with zlib, SQLite, and OpenSSL support, including the dependency audit. The `FR-HG-001` onboarding revalidation ran on 2026-10-23 under source-built CPython 3.12.12 with zlib 1.3.1 and SQLite 3.38.2; that sandbox interpreter has no OpenSSL module, so the network audit step was not rerun for this slice. Python 3.11 was not substituted in either run.
 
 ## Passing checks
 
@@ -8,15 +8,15 @@ Recorded 2026-10-24. ROI, Ring webhook, weather, feature-extraction, and coordin
 | --- | --- |
 | Ruff lint + format check | Passed |
 | Strict mypy | Passed; 11 source files |
-| Unit tests | 153/153 passed |
-| Branch-aware coverage | 94.16%; required gate 90% retained; domain 100%, features_v1 100%, webhooks 96%, weather 94%, vision worker 93%, webhook server 76% (the stdlib request-handler shell is exercised through its real socket path) |
-| Schema/contract tests | 46/46 passed; forecast schema copy byte-identical; tree-registration, camera-view, and donation-receipt projections validated against their JSON Schemas; ranking weights compared across Python and TypeScript |
+| Unit tests | 308/308 passed, 1 skipped (skip is conditional on `onnxruntime` being installed) |
+| Branch-aware coverage | 94.43%; required gate 90% retained; forecasting 93–94%, notifications 94–99%, ONNX runtime 94%, weights 87%, webhooks 96%, weather 94% |
+| Schema/contract tests | 70/70 passed; forecast schema copy byte-identical; tree-registration, camera-view, donation-receipt, ripening-projection, and notification-dispatch contracts validated; ranking weights compared across Python and TypeScript |
 | Coordinator dashboard checks | `pnpm typecheck` clean, 53/53 tests passed across 4 files, production build succeeded (25 modules, ~242 kB JS / 76 kB gzipped) |
 | Operational/security boundary test | 1/1 passed |
 | Third-party dependency audit | Not rerun this slice (sandbox interpreter lacks OpenSSL). Last recorded result: no known vulnerabilities; editable local package skipped |
 | Source distribution + wheel | Both built successfully |
 | Fixture walking path | Coarse-location owner/organization/tree/consent registration, approval/assignment/revocation, minimized export, short-lived access-token revocation, five-stage fixture deletion, plus a separate coordinator-verified outcome, non-sensitive receipt, forecast evaluation, closure, and a two-example synthetic evaluation aggregate with an ineligible model data gate |
-| **Total tests** | **200/200 passed** (153 unit + 46 contract + 1 security), plus 53 dashboard tests |
+| **Total tests** | **379/379 passed** (308 unit + 70 contract + 1 security), plus 53 dashboard tests |
 
 The forecast remains `experimental`, `seasonal_baseline`, human-readiness-review-required, and visible-only. Internal-ripeness and food-safety inference remain false.
 
@@ -48,6 +48,38 @@ Contract tests validate the serialized tree projection against a JSON Schema tha
 
 `packages/vision/harvestgrid_vision/` produces the 16-column `features_v1` row from an approved, already-masked view. Frames failing registration, luminance, contrast, ROI-coverage, or composite quality gates are rejected with reason codes and emit no feature row (`feature_row()` returns `None`), so a bad frame cannot look like a zero-fruit count. Missing values are `-1.0`. Detections are 4-connected components above an area floor; counts carry lower/upper bounds and area percentiles. `HeuristicClusterDetector` is labelled `heuristic_fixture`, `OnnxDetector` raises `InferenceBackendUnavailable` rather than pretending to run a model, and every observation hard-codes `internal_ripeness_inferred`, `food_safety_inferred`, `disease_inferred`, and `raw_media_included` to `false`.
 
+## Weather ingestion scheduler and ripening curves
+
+`services/forecasting/` adds a scheduled coarse-weather ingestion worker and a temperature-driven ripening model.
+
+`WeatherIngestionScheduler.tick()` is a deterministic function of clock, weather source, and state store. It skips trees whose camera view or operations consent is not current, respects per-tree poll intervals (1 hour to 7 days, default 6 hours), applies exponential failure backoff (5 minutes doubling to a 6-hour cap), caps a batch at 50 trees, and reports leftovers instead of silently dropping them. Observations are keyed by provider payload digest, so a repeated tick with identical bytes records `observations_duplicate` and writes nothing; a projection is only re-versioned when its fingerprint changes, which is what emits a `RipeningAdjustment` for the coordinator.
+
+Failure handling is deliberate: a provider error marks the tree failed and backs off, an unexpected exception is contained to that tree, and three consecutive failures flag the tree in `review_recommended`. Per-tree runtime is measured and a breach of the five-minute forecast budget is reported. Tests cover the happy path, duplicate ticks, interval skipping, gated trees, backoff and recovery, repeated-failure escalation, the batch cap, budget breach, serialization guards, worker iteration/stop, and the Celery/RQ adapters failing visibly when the dependency is absent.
+
+`project_ripening` accumulates `max(0, mean_temperature − base)` and maps the total to a stage, progress, and harvest window using the forecast daily rate when available and the trailing observed rate otherwise. The window widens with the horizon, missing days, and any extrapolation beyond forecast coverage. An unreviewed prior, fewer than 14 observed days, or a missing rate keeps the projection `experimental` with `low` confidence, and the projection always reports `internal_ripeness_inferred` and `food_safety_inferred` as false. Adjustment tests confirm a warmer forecast moves the window earlier, a cooler one later, and identical inputs produce no material change.
+
+Honest limits: no live Open-Meteo request was made (transport is injected), no broker was started, and no cultivar prior has been reviewed — so every projection produced today is experimental and low-confidence by construction.
+
+## Volunteer dispatch and SMS adapters
+
+`services/notifications/` adds coordinator-approved pickup alerts over two real transports.
+
+Dispatch requires `approved_by == coordinator_id`, a current owner approval, and a glean state of `invited`/`confirmed` (or `cancelled` for a cancellation alert); anything else raises `dispatch_not_authorized` before a message is built. Each recipient is then checked for suppression, channel, explicit SMS opt-in with a policy version, and a phone number; quiet hours (21:00–07:00 local, timezone-aware) defer rather than send; the per-volunteer daily cap and per-tick cap limit volume; and the `glean/state/recipient/template/version` key suppresses repeats.
+
+Message content is minimised by construction: `PickupAlert` has no address, access-code, coordinate, owner, or recipient field. The renderer refuses to emit text containing any restricted marker supplied for comparison, an obvious street address, or an embedded phone number, and enforces a three-segment ceiling. Tests assert the address and access note never appear in the body or the report, and that the ledger holds only a SHA-256 body digest.
+
+`TwilioSmsTransport` posts to the documented Messages resource with Basic auth and maps 401/403, 429 (preserving `Retry-After`), 5xx, and 4xx to stable codes; `SnsSmsTransport` publishes with a Transactional SMS type and a `MaxPrice` guard and requires `boto3`, raising `BackendUnavailable` without it. Both are tested against injected fakes that assert request shape, error mapping, and that neither the token nor the phone number appears in an exception.
+
+Honest limits: no Twilio account, SNS topic, or real phone number exists here, so delivery, cost, and country-specific sender behaviour are unverified.
+
+## ONNX inference runtime and weight policy
+
+`packages/vision/harvestgrid_vision/onnx_detector.py` implements the real inference path: the artifact digest is verified before any session is created, an RGB frame plane is letterboxed to the model input, both `(C, N)` and `(N, C)` YOLOv8 layouts are decoded, class-agnostic NMS is applied, and every detection whose box is mostly outside the privacy-masked allowed region is dropped before it becomes a `Detection`.
+
+The weights themselves are **not** supplied. `packages/vision/weights/manifest.json` records `plum-yolov8n-int8-v1` as `blocked` because no owner-consented plum dataset, reviewed model card, or held-out evaluation exists, because generic COCO/ImageNet weights contain no fruit class, and because this environment cannot reach GitHub release assets. `tools/fetch_weights.py` refuses blocked and test-only entries, verifies SHA-256 and size on any local install, writes a provenance sidecar, and will not install over an existing artifact without `--force`.
+
+A synthetic constant-output ONNX graph is built inside `tmp_path` during tests to exercise a genuine `onnxruntime` session end to end; it is untrained, detects nothing, is never committed, and is not referenced by any product path. Fifteen runtime/decoding/geometry tests plus thirteen manifest and install tests pin this behaviour.
+
 ## Coordinator dashboard
 
 `apps/web` is a React 19 + Vite + TypeScript single-page coordinator dashboard. Its `CoordinatorApi` port exposes only board loading, assignment approval, and receipt recording — there is no method that could return an address, raw media, or Ring data. The default `FixtureCoordinatorApi` renders a persistent `FIXTURE DATA` banner and a live-mode switch that is opt-in through `VITE_DEMO_MODE`.
@@ -69,4 +101,4 @@ Use a Python 3.12 runtime with zlib, SQLite, and SSL/TLS so the normal coverage 
 
 ## Not evidenced
 
-No Ring device/API/simulator, real observation, residential media, real ROI/masking, live weather request, CV model, cultivar prior, operational forecast, model-quality result, actual invitation/notification, durable coordinator workflow, production location authorization, real weighed glean/donation, reviewed evaluation-set manifest, model training/promotion, production/cloud verified deletion, participant/pilot, performance, deployment, or release behavior was exercised. The webhook service was only exercised with fixture secrets and synthetic bodies; the weather adapter only with recorded-shape synthetic JSON; the vision worker only with synthetic pixel grids and no ONNX artifact; and the dashboard only with fixture data in jsdom and a local dev server. Three-second-to-fifteen-minute latency requirements, browser E2E against a live API, and mobile/large-organization performance were not measured. Registration is an in-memory fixture behind typed ports: no FastAPI endpoint, durable database, Cognito authentication, or real owner/organization onboarding ran, and no camera view was approved. The verified weights, receipt, and two-example evaluation aggregate are synthetic in-memory values, not a real held-out evaluation set or model-quality claim. No operational forecast or trained model artifact exists.
+No Ring device/API/simulator, real observation, residential media, real ROI/masking, live weather request, broker-backed schedule, live Twilio/SNS message, trained fruit-detection ONNX artifact, CV model, reviewed cultivar prior, operational forecast, model-quality result, actual invitation/notification, durable coordinator workflow, production location authorization, real weighed glean/donation, reviewed evaluation-set manifest, model training/promotion, production/cloud verified deletion, participant/pilot, performance, deployment, or release behavior was exercised. The webhook service was only exercised with fixture secrets and synthetic bodies; the weather adapter and scheduler only with recorded-shape synthetic JSON and an in-memory store; notifications only against injected HTTP/SNS fakes; the vision worker only with synthetic pixel grids and no trained ONNX artifact (the runtime smoke test used an untrained constant-output graph); and the dashboard only with fixture data in jsdom and a local dev server. Ripening accuracy and SMS deliverability are unmeasured. Three-second-to-fifteen-minute latency requirements, browser E2E against a live API, and mobile/large-organization performance were not measured. Registration is an in-memory fixture behind typed ports: no FastAPI endpoint, durable database, Cognito authentication, or real owner/organization onboarding ran, and no camera view was approved. The verified weights, receipt, and two-example evaluation aggregate are synthetic in-memory values, not a real held-out evaluation set or model-quality claim. No operational forecast or trained model artifact exists.

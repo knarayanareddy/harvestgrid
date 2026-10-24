@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harvestgrid.example/schemas/notification-dispatch-v1.json",
+  "title": "HarvestGrid notification dispatch audit record",
+  "description": "Audit projection for one volunteer dispatch attempt. Contains recipient and message references only: no phone number, message text, address, access note, or owner identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "glean_id",
+    "template_version",
+    "kind",
+    "at",
+    "sent",
+    "skipped",
+    "deferred",
+    "failed",
+    "outcomes"
+  ],
+  "properties": {
+    "glean_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "template_version": { "type": "string", "pattern": "^pickup-v[0-9]+$" },
+    "kind": { "enum": ["invitation", "reminder", "cancellation"] },
+    "at": { "type": "string", "format": "date-time" },
+    "sent": { "type": "integer", "minimum": 0 },
+    "skipped": { "type": "integer", "minimum": 0 },
+    "deferred": { "type": "integer", "minimum": 0 },
+    "failed": { "type": "integer", "minimum": 0 },
+    "outcomes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["volunteer_id", "status", "reason", "message_id", "segments"],
+        "properties": {
+          "volunteer_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "status": { "enum": ["sent", "skipped", "deferred", "failed"] },
+          "reason": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "message_id": { "type": ["string", "null"], "maxLength": 200 },
+          "segments": { "type": "integer", "minimum": 0, "maximum": 3 }
+        }
+      }
+    }
+  },
+  "not": {
+    "anyOf": [
+      { "required": ["phone"] },
+      { "required": ["phone_e164"] },
+      { "required": ["body"] },
+      { "required": ["address"] },
+      { "required": ["access_notes"] }
+    ]
+  }
+}
