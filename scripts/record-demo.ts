@@ -321,7 +321,7 @@ export async function record(options: RecordOptions): Promise<{
       console.log(`▶ ${scene.title}`);
       for (const action of scene.actions) await perform(page, action);
       await assertExpectations(page, scene.id);
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(4500);
       sceneCues.push({
         id: scene.id,
         title: scene.title,
@@ -343,7 +343,41 @@ export async function record(options: RecordOptions): Promise<{
       throw new Error(`expected exactly one recording in ${RAW_DIR}, found ${videos.length}`);
     }
     mkdirSync(dirname(options.output), { recursive: true });
-    renameSync(join(RAW_DIR, videos[0] as string), options.output);
+    const rawVideo = join(RAW_DIR, videos[0] as string);
+    const narrationPath = join(ROOT, "docs", "media", "harvestgrid-narration.mp3");
+    if (existsSync(narrationPath)) {
+      execFileSync("ffmpeg", [
+        "-y",
+        "-i",
+        rawVideo,
+        "-i",
+        narrationPath,
+        "-c:v",
+        "copy",
+        "-c:a",
+        "libopus",
+        "-b:a",
+        "128k",
+        "-shortest",
+        options.output,
+      ]);
+      execFileSync("ffmpeg", [
+        "-y",
+        "-i",
+        options.output,
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "128k",
+        options.output.replace(/\.webm$/, ".mp4"),
+      ]);
+    } else {
+      renameSync(rawVideo, options.output);
+    }
     rmSync(RAW_DIR, { recursive: true, force: true });
 
     const cues: CueSheet = {

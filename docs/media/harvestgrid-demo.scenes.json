@@ -1,19 +1,19 @@
 {
   "video": "harvestgrid-demo.webm",
-  "generatedAt": "2026-10-24T15:37:01.455Z",
+  "generatedAt": "2026-10-24T16:39:37.076Z",
   "viewport": {
     "width": 1280,
     "height": 900
   },
-  "durationMs": 18078,
+  "durationMs": 38205,
   "scenes": [
     {
       "id": "onboarding",
       "title": "1 · Tree onboarding and consent",
       "cardTitle": "Onboarding",
       "narration": "A tree is registered with a coarse geohash only. Camera collection needs its own consent — the demo refuses to continue without it.",
-      "startMs": 2461,
-      "endMs": 4436,
+      "startMs": 2464,
+      "endMs": 8694,
       "assertions": [
         "collection-status ∋ Consented"
       ]
@@ -23,8 +23,8 @@
       "title": "2 · Privacy polygon and mask boundary",
       "cardTitle": "Privacy ROI Mask",
       "narration": "Drag a vertex of the tree ROI, then widen the neighbour mask. Every change resets both approvals, and detections that fall mostly outside the allowed region are dropped.",
-      "startMs": 5690,
-      "endMs": 8615,
+      "startMs": 9999,
+      "endMs": 17281,
       "assertions": [
         "view-approvals ∋ owner ✔",
         "webhook-summary ∋ HMAC verified"
@@ -35,8 +35,8 @@
       "title": "3 · Open-Meteo ripening curve",
       "cardTitle": "Open-Meteo Ripening",
       "narration": "Warm the weather offset and the growing-degree-day curve advances, moving the stage and the harvest window. The projection stays experimental, with human review required.",
-      "startMs": 9871,
-      "endMs": 12436,
+      "startMs": 18552,
+      "endMs": 25803,
       "assertions": [
         "dispatch-gate ∋ Gate"
       ]
@@ -46,8 +46,8 @@
       "title": "4 · Volunteer dispatch",
       "cardTitle": "Volunteer Dispatch",
       "narration": "Confirm readiness, assign two volunteers, and dispatch. The result shows per-recipient outcomes, masked phone numbers, and body digests — never message bodies.",
-      "startMs": 13691,
-      "endMs": 15895,
+      "startMs": 27065,
+      "endMs": 35313,
       "assertions": [
         "dispatch-summary ∋ sent",
         "outcome-volunteer-c ∋ sms opt in required"
