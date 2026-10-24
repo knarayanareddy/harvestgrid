@@ -12,13 +12,23 @@
  *   node --experimental-strip-types scripts/record-demo.ts
  *
  * Options:
- *   --base-url <url>   where the demo is served (default http://127.0.0.1:5173/harvestgrid/)
- *   --output <path>    output file (default docs/media/harvestgrid-demo.webm)
- *   --headed           show the browser (useful when debugging selectors)
- *   --selftest         verify the scene plan and the served page without launching a browser
+ *   --base-url <url>          where the demo is served (default http://127.0.0.1:5173/harvestgrid/)
+ *   --output <path>           output file (default docs/media/harvestgrid-demo.webm)
+ *   --executable-path <path>  use a Chromium/headless-shell binary Playwright did not install
+ *   --launch-arg <flag>       extra browser flag (repeatable), e.g. --launch-arg=--no-sandbox
+ *   --headed                  show the browser (useful when debugging selectors)
+ *   --selftest                verify the scene plan and the served page without launching a browser
  *
- * The recording is silent: Playwright captures video only. Narration lives in the scene plan
- * (`narration` on each scene) so it can be re-recorded as a voice-over without re-timing the UI.
+ * Alongside the video, the run writes `<output>.scenes.json`: a cue sheet with each scene's
+ * wall-clock start, end, title, and narration. The coordinator dashboard's Demo Video tab reads it
+ * to highlight the scene card that matches the playhead, so the cards and the video cannot drift.
+ *
+ * `--executable-path` exists for environments where the Playwright browser CDN is unreachable: any
+ * recent `chrome-headless-shell` build works, and `--launch-arg` carries the container flags it
+ * needs. With the stock install, no flags are required.
+ *
+ * The recording is silent: Playwright captures video only. Narration lives in the cue sheet and the
+ * scene plan so a voice-over can be added later without re-timing the UI.
  *
  * Honesty note: the video is a recording of the *fixture* demo. Every frame carries the
  * FIXTURE DATA banner; no device, weather service, telephony account, or database is involved.
@@ -28,7 +38,7 @@
 
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -39,6 +49,26 @@ const ROOT = resolve(HERE, "..");
 const DEFAULT_OUTPUT = join(ROOT, "docs", "media", "harvestgrid-demo.webm");
 const RAW_DIR = join(ROOT, "docs", "media", ".playwright-raw");
 const VIEWPORT = { width: 1280, height: 900 };
+
+/** One scene's position in the recorded video, in milliseconds from the first frame. */
+export interface SceneCue {
+  readonly id: string;
+  readonly title: string;
+  /** Short label the dashboard's scene card shows, from the plan's `cardTitle`. */
+  readonly cardTitle: string;
+  readonly narration: string;
+  readonly startMs: number;
+  readonly endMs: number;
+  readonly assertions: readonly string[];
+}
+
+export interface CueSheet {
+  readonly video: string;
+  readonly generatedAt: string;
+  readonly viewport: { readonly width: number; readonly height: number };
+  readonly durationMs: number;
+  readonly scenes: readonly SceneCue[];
+}
 
 interface PageLike {
   goto(url: string, options?: { waitUntil?: string }): Promise<unknown>;
@@ -73,18 +103,35 @@ export function selector(testId: string): string {
   return `[data-testid="${testId}"]`;
 }
 
-export function parseArgs(argv: readonly string[]): {
-  baseUrl: string;
-  output: string;
-  headed: boolean;
-  selftest: boolean;
-} {
-  const result = {
+export interface RecordArgs {
+  readonly baseUrl: string;
+  readonly output: string;
+  readonly headed: boolean;
+  readonly selftest: boolean;
+  readonly executablePath?: string;
+  readonly launchArgs: readonly string[];
+}
+
+export function parseArgs(argv: readonly string[]): RecordArgs {
+  const result: {
+    baseUrl: string;
+    output: string;
+    headed: boolean;
+    selftest: boolean;
+    executablePath?: string;
+    launchArgs: string[];
+  } = {
     baseUrl: process.env.DEMO_URL ?? "http://127.0.0.1:5173/harvestgrid/",
     output: DEFAULT_OUTPUT,
     headed: false,
     selftest: false,
+    launchArgs: [],
   };
+  const envExecutable = process.env.PLAYWRIGHT_EXECUTABLE_PATH;
+  if (envExecutable) result.executablePath = resolve(envExecutable);
+  for (const extra of (process.env.PLAYWRIGHT_LAUNCH_ARGS ?? "").split(/[,\s]+/)) {
+    if (extra) result.launchArgs.push(extra);
+  }
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     const next = argv[index + 1];
@@ -94,6 +141,14 @@ export function parseArgs(argv: readonly string[]): {
     } else if (flag === "--output" && next) {
       result.output = resolve(process.cwd(), next);
       index += 1;
+    } else if (flag === "--executable-path" && next) {
+      result.executablePath = resolve(next);
+      index += 1;
+    } else if (flag?.startsWith("--launch-arg=")) {
+      result.launchArgs.push(flag.slice("--launch-arg=".length));
+    } else if (flag === "--launch-arg" && next) {
+      result.launchArgs.push(next);
+      index += 1;
     } else if (flag === "--headed") {
       result.headed = true;
     } else if (flag === "--selftest") {
@@ -102,6 +157,11 @@ export function parseArgs(argv: readonly string[]): {
   }
   if (!result.baseUrl.endsWith("/")) result.baseUrl = `${result.baseUrl}/`;
   return result;
+}
+
+/** Cue-sheet path for a given video: `foo.webm` → `foo.scenes.json`. */
+export function cueSheetPath(output: string): string {
+  return output.replace(/\.webm$/, "") + ".scenes.json";
 }
 
 async function loadPlaywright(): Promise<PlaywrightModule> {
@@ -115,7 +175,16 @@ async function loadPlaywright(): Promise<PlaywrightModule> {
         "pnpm --dir apps/web exec playwright install chromium",
     );
   }
-  return (await import(pathToFileURL(resolved).href)) as PlaywrightModule;
+  // Playwright ships CommonJS; named-export detection is not guaranteed for it, so accept either
+  // the namespace or its `default`.
+  const loaded = (await import(pathToFileURL(resolved).href)) as
+    | PlaywrightModule
+    | { default: PlaywrightModule };
+  const module = "chromium" in loaded ? loaded : loaded.default;
+  if (module?.chromium === undefined) {
+    throw new Error(`playwright at ${resolved} did not expose chromium`);
+  }
+  return module;
 }
 
 async function centre(page: PageLike, testId: string): Promise<{ x: number; y: number }> {
@@ -169,6 +238,18 @@ async function perform(page: PageLike, action: DemoAction): Promise<void> {
   }
 }
 
+/** Scrolls a panel to the middle of the viewport and returns once the scroll has settled. */
+async function focusPanel(page: PageLike, testId: string): Promise<void> {
+  await page.evaluate(
+    `(() => {
+      const element = document.querySelector(${JSON.stringify(selector(testId))});
+      if (!element) throw new Error("missing " + ${JSON.stringify(testId)});
+      element.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+    })()`,
+  );
+  await page.waitForTimeout(650);
+}
+
 async function assertExpectations(page: PageLike, sceneId: string): Promise<void> {
   const scene = RECORDING_SCENES.find((item) => item.id === sceneId);
   if (!scene) return;
@@ -185,17 +266,39 @@ async function assertExpectations(page: PageLike, sceneId: string): Promise<void
   }
 }
 
-export async function record(options: {
-  baseUrl: string;
-  output: string;
-  headed: boolean;
-  playwright?: PlaywrightModule;
-}): Promise<string> {
+export interface RecordOptions {
+  readonly baseUrl: string;
+  readonly output: string;
+  readonly headed: boolean;
+  readonly executablePath?: string;
+  readonly launchArgs?: readonly string[];
+  readonly playwright?: PlaywrightModule;
+  /** Injectable clock so cue timings are deterministic in tests. */
+  readonly now?: () => number;
+}
+
+export async function record(options: RecordOptions): Promise<{
+  video: string;
+  cueSheet: string;
+  cues: CueSheet;
+}> {
   const playwright = options.playwright ?? (await loadPlaywright());
+  const now = options.now ?? (() => Date.now());
   rmSync(RAW_DIR, { recursive: true, force: true });
   mkdirSync(RAW_DIR, { recursive: true });
 
-  const browser = await playwright.chromium.launch({ headless: !options.headed });
+  const launchOptions: Record<string, unknown> = { headless: !options.headed };
+  if (options.executablePath) launchOptions.executablePath = options.executablePath;
+  if (options.launchArgs && options.launchArgs.length > 0) {
+    launchOptions.args = [...options.launchArgs];
+  }
+
+  // The video clock starts with the first frame, not with the process, so scene boundaries are
+  // measured from page load and shifted by the recorder's own lead-in.
+  const LEAD_IN_MS = 1200;
+  const sceneCues: SceneCue[] = [];
+
+  const browser = await playwright.chromium.launch(launchOptions);
   try {
     const context = await browser.newContext({
       viewport: VIEWPORT,
@@ -206,30 +309,56 @@ export async function record(options: {
     const page = await context.newPage();
     await page.goto(options.baseUrl, { waitUntil: "domcontentloaded" });
     await page.waitForSelector(selector("demo-workspace"), { timeout: 30_000 });
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(LEAD_IN_MS);
 
+    const startedAt = now();
     for (const scene of RECORDING_SCENES) {
+      // Frame the panel this scene acts on, so the video shows the change rather than a scroll
+      // jump. The panel id comes from the plan, so a renamed section cannot desynchronise them.
+      await focusPanel(page, scene.panelTestId);
+      await page.waitForTimeout(600);
+      const sceneStart = now() - startedAt + LEAD_IN_MS;
       console.log(`▶ ${scene.title}`);
       for (const action of scene.actions) await perform(page, action);
       await assertExpectations(page, scene.id);
       await page.waitForTimeout(400);
+      sceneCues.push({
+        id: scene.id,
+        title: scene.title,
+        cardTitle: scene.cardTitle,
+        narration: scene.narration,
+        startMs: Math.round(sceneStart),
+        endMs: Math.round(now() - startedAt + LEAD_IN_MS),
+        assertions: scene.expect.map((item) => `${item.testId} ∋ ${item.contains}`),
+      });
     }
     // A closing beat so the last frame is not the dispatch table mid-scroll.
     await page.evaluate("window.scrollTo({ top: 0, behavior: 'smooth' })");
     await page.waitForTimeout(1500);
+    const durationMs = Math.round(now() - startedAt + LEAD_IN_MS);
     await context.close();
+
+    const videos = readdirSync(RAW_DIR).filter((name) => name.endsWith(".webm"));
+    if (videos.length !== 1) {
+      throw new Error(`expected exactly one recording in ${RAW_DIR}, found ${videos.length}`);
+    }
+    mkdirSync(dirname(options.output), { recursive: true });
+    renameSync(join(RAW_DIR, videos[0] as string), options.output);
+    rmSync(RAW_DIR, { recursive: true, force: true });
+
+    const cues: CueSheet = {
+      video: options.output.split(/[\\/]/).pop() ?? "harvestgrid-demo.webm",
+      generatedAt: new Date(startedAt).toISOString(),
+      viewport: VIEWPORT,
+      durationMs,
+      scenes: sceneCues,
+    };
+    const cuePath = cueSheetPath(options.output);
+    writeFileSync(cuePath, `${JSON.stringify(cues, null, 2)}\n`, "utf8");
+    return { video: options.output, cueSheet: cuePath, cues };
   } finally {
     await browser.close();
   }
-
-  const videos = readdirSync(RAW_DIR).filter((name) => name.endsWith(".webm"));
-  if (videos.length !== 1) {
-    throw new Error(`expected exactly one recording in ${RAW_DIR}, found ${videos.length}`);
-  }
-  mkdirSync(dirname(options.output), { recursive: true });
-  renameSync(join(RAW_DIR, videos[0] as string), options.output);
-  rmSync(RAW_DIR, { recursive: true, force: true });
-  return options.output;
 }
 
 async function selftest(baseUrl: string): Promise<void> {
@@ -254,13 +383,17 @@ async function selftest(baseUrl: string): Promise<void> {
   if (!html.includes("id=\"root\"")) throw new Error("page has no #root element");
   console.log(`✔ served page: ${baseUrl} (${response.status}, ${html.length} bytes)`);
 
-  // 3. The browser, if it happens to be installed.
+  // 3. The browser: a Playwright-installed build, or an explicit binary.
+  const explicit = process.env.PLAYWRIGHT_EXECUTABLE_PATH;
   const cacheHint = join(ROOT, "apps", "web", "node_modules", "playwright-core", ".local-browsers");
   console.log(
-    existsSync(cacheHint)
-      ? "✔ chromium cache present; run without --selftest to record"
-      : "note: chromium is not installed, so the video cannot be recorded in this environment " +
-          "(run `pnpm --dir apps/web exec playwright install chromium`)",
+    explicit && existsSync(explicit)
+      ? `✔ explicit browser: ${explicit}; run without --selftest to record`
+      : existsSync(cacheHint)
+        ? "✔ chromium cache present; run without --selftest to record"
+        : "note: chromium is not installed, so the video cannot be recorded in this environment " +
+            "(run `pnpm --dir apps/web exec playwright install chromium`, or pass " +
+            "--executable-path)",
   );
   console.log("Selectors the recorder will use:");
   for (const scene of RECORDING_SCENES) {
@@ -281,9 +414,11 @@ function main(): number {
     return 0;
   }
   record(args)
-    .then((output) => {
-      const bytes = readFileSync(output).length;
-      console.log(`✔ wrote ${output} (${(bytes / 1024).toFixed(0)} kB)`);
+    .then(({ video, cueSheet, cues }) => {
+      const bytes = readFileSync(video).length;
+      console.log(`✔ wrote ${video} (${(bytes / 1024).toFixed(0)} kB, ${cues.durationMs} ms)`);
+      console.log(`✔ wrote ${cueSheet} (${cues.scenes.length} scenes)`);
+      const output = video;
       // Playwright only records VP8 WebM; note the codec so docs do not over-claim.
       try {
         execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_name", output], {
@@ -296,7 +431,10 @@ function main(): number {
     .catch((error: unknown) => {
       console.error(`✖ ${error instanceof Error ? error.message : String(error)}`);
       if (error instanceof Error && error.message.includes("Executable doesn't exist")) {
-        console.error("Run: pnpm --dir apps/web exec playwright install chromium");
+        console.error(
+          "Run: pnpm --dir apps/web exec playwright install chromium, " +
+            "or point --executable-path at an existing headless-shell binary.",
+        );
       }
       process.exitCode = 1;
     });

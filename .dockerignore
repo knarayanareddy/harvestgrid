@@ -1,7 +1,10 @@
-# Keep the build context to sources; the web app and media are built elsewhere.
+# Keep the build context to sources.
+#
+# docs/media is *not* excluded: apps/web/Dockerfile copies the recorded walkthrough into the
+# bundle so the Demo Video tab works in the container. Everything else that is generated
+# (dist, caches, coverage, model artifacts) stays out.
 .git
 .github
-docs/media
 node_modules
 **/node_modules
 **/.pnpm-store
@@ -16,4 +19,7 @@ apps/web/dist
 coverage
 coverage.xml
 data
-*.webm
+docs/media/.playwright-raw
+*.onnx
+*.pt
+*.pth

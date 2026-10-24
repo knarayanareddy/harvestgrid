@@ -656,3 +656,226 @@ code {
 .activity li {
   margin-bottom: 0.2rem;
 }
+
+/* ---------------------------------------------------------------- navigation */
+
+.tabs-nav {
+  margin: 0 auto var(--space-section);
+  max-width: 1180px;
+  padding: 0 var(--space-page);
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-unit);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.tab {
+  appearance: none;
+  border: 2px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-small) var(--radius-small) 0 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-weight: 600;
+  min-height: var(--target-minimum);
+  padding: 0 1rem;
+  margin-bottom: -2px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.tab[aria-selected="true"] {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  border-bottom: 2px solid var(--color-surface);
+  color: var(--color-primary);
+}
+
+[role="tabpanel"]:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: 4px;
+}
+
+/* A hidden panel must stay hidden even when a rule below sets `display`. */
+[role="tabpanel"][hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------- map view */
+
+.area-grid {
+  display: grid;
+  gap: var(--space-section);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .area-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.area-cell {
+  margin: 0;
+}
+
+.area-cell svg {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+}
+
+.area-cell figcaption {
+  color: var(--color-text-muted);
+  font-size: var(--size-small);
+  margin-top: var(--space-control);
+}
+
+.area-cell-label {
+  fill: var(--color-primary);
+  font-family: var(--font-data);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.area-cell-note {
+  fill: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 10px;
+}
+
+/* ----------------------------------------------------------- demo video */
+
+.video-frame {
+  background: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+  overflow: hidden;
+}
+
+.demo-video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1280 / 900;
+  background: var(--color-text);
+}
+
+.video-missing {
+  padding: var(--space-section) var(--space-page);
+  color: var(--color-canvas);
+  font-size: var(--size-small);
+  line-height: var(--line-body);
+}
+
+.video-missing code {
+  font-family: var(--font-data);
+  background: rgb(255 255 255 / 12%);
+  padding: 0 0.25rem;
+  border-radius: var(--radius-small);
+}
+
+.video-caption {
+  color: var(--color-text-muted);
+  font-family: var(--font-data);
+  font-size: var(--size-small);
+  margin: var(--space-control) 0 var(--space-section);
+}
+
+.scene-cards {
+  display: grid;
+  gap: var(--space-control);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  list-style: none;
+  margin: 0 0 var(--space-section);
+  padding: 0;
+}
+
+.scene-card {
+  appearance: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border);
+  border-radius: var(--radius-large);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font: inherit;
+  height: 100%;
+  padding: var(--space-control) 0.75rem var(--space-control) 0.75rem;
+  text-align: left;
+  width: 100%;
+}
+
+.scene-card:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.scene-card:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.scene-card-active {
+  background: var(--color-surface-alt);
+  border-color: var(--color-primary);
+  border-left-color: var(--color-primary);
+}
+
+.scene-card-head {
+  align-items: baseline;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.scene-card-index {
+  align-items: center;
+  background: var(--color-primary);
+  border-radius: 50%;
+  color: var(--color-on_primary);
+  display: inline-flex;
+  flex: none;
+  font-size: 0.7rem;
+  font-weight: 700;
+  height: 1.25rem;
+  justify-content: center;
+  width: 1.25rem;
+}
+
+.scene-card-title {
+  flex: 1;
+  font-size: var(--size-small);
+  font-weight: 700;
+}
+
+.scene-card-time {
+  color: var(--color-text-muted);
+  font-family: var(--font-data);
+  font-size: 0.72rem;
+}
+
+.scene-card-narration {
+  color: var(--color-text-muted);
+  font-size: var(--size-small);
+  line-height: 1.4;
+}
+
+.scene-card-assertions {
+  color: var(--color-text-muted);
+  font-family: var(--font-data);
+  font-size: 0.7rem;
+  margin-top: auto;
+  padding-top: 0.25rem;
+}

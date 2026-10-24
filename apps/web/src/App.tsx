@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 
 import type { CoordinatorApi } from "./api/CoordinatorApi";
+import { CoarseAreaView } from "./components/CoarseAreaView";
 import { DecisionSummary } from "./components/DecisionSummary";
+import { DemoVideo } from "./components/DemoVideo";
 import { MatchingBoard } from "./components/MatchingBoard";
 import { ReceiptForm } from "./components/ReceiptForm";
 import type {
@@ -16,12 +18,62 @@ type LoadState =
   | { readonly status: "error"; readonly message: string }
   | { readonly status: "ready"; readonly board: Board };
 
+type TabId = "map" | "yields" | "dispatch" | "video";
+
+const TABS: readonly { readonly id: TabId; readonly label: string }[] = [
+  { id: "map", label: "Map View" },
+  { id: "yields", label: "Yield Forecasts" },
+  { id: "dispatch", label: "Gleaning Dispatch" },
+  { id: "video", label: "Demo Video" },
+];
+
+const TAB_IDS = TABS.map((tab) => tab.id);
+
+/**
+ * The coordinator console's navigation.
+ *
+ * "Gleaning Dispatch" is the default because it is the work a coordinator comes to do; the other
+ * tabs are context. Every panel stays mounted and is hidden with the `hidden` attribute rather
+ * than unmounted, so a half-typed receipt survives a tab change and the board is not refetched
+ * when a coordinator checks the forecast mid-approval.
+ */
+function tabIdOf(tab: TabId): string {
+  return `tab-${tab}`;
+}
+
+function panelIdOf(tab: TabId): string {
+  return `panel-${tab}`;
+}
+
 export function App({ api }: { readonly api: CoordinatorApi }): ReactElement {
   const [load, setLoad] = useState<LoadState>({ status: "loading" });
   const [approvalMessage, setApprovalMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<DonationReceipt | null>(null);
   const [errors, setErrors] = useState<readonly FieldError[]>([]);
+  const [tab, setTab] = useState<TabId>("dispatch");
+  const tabRefs = useRef<Partial<Record<TabId, HTMLButtonElement | null>>>({});
+
+  const selectTab = (next: TabId): void => {
+    setTab(next);
+    // Roving focus: moving selection with the keyboard must take focus with it, or the next
+    // arrow key acts on the control that no longer represents the visible panel.
+    tabRefs.current[next]?.focus();
+  };
+
+  const handleTabKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    const current = TAB_IDS.indexOf(tab);
+    if (current === -1) return;
+    let next = current;
+    if (event.key === "ArrowRight") next = (current + 1) % TAB_IDS.length;
+    else if (event.key === "ArrowLeft") next = (current - 1 + TAB_IDS.length) % TAB_IDS.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = TAB_IDS.length - 1;
+    else return;
+    event.preventDefault();
+    const target = TAB_IDS[next] as TabId;
+    selectTab(target);
+  };
 
   const refresh = useCallback(async () => {
     setLoad({ status: "loading" });
@@ -108,6 +160,34 @@ export function App({ api }: { readonly api: CoordinatorApi }): ReactElement {
           </p>
         ) : null}
       </header>
+      <nav className="tabs-nav" aria-label="Coordinator views">
+        <div
+          className="tabs"
+          role="tablist"
+          aria-label="Coordinator views"
+          onKeyDown={handleTabKeyDown}
+        >
+          {TABS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              id={tabIdOf(item.id)}
+              className="tab"
+              aria-selected={tab === item.id}
+              aria-controls={panelIdOf(item.id)}
+              tabIndex={tab === item.id ? 0 : -1}
+              data-testid={`tab-${item.id}`}
+              ref={(element) => {
+                tabRefs.current[item.id] = element;
+              }}
+              onClick={() => setTab(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </nav>
       <main id="main">
         {load.status === "loading" ? (
           <p role="status">Loading the matching board…</p>
@@ -121,24 +201,58 @@ export function App({ api }: { readonly api: CoordinatorApi }): ReactElement {
           </section>
         ) : (
           <>
-            <DecisionSummary
-              forecast={load.board.forecast}
-              ownerApprovalCurrent={load.board.ownerApprovalCurrent}
-            />
-            <MatchingBoard
-              board={load.board}
-              roles={api.session.roles}
-              onApprove={(volunteerIds) => void approve(volunteerIds)}
-              busy={busy}
-              message={approvalMessage}
-            />
-            <ReceiptForm
-              roles={api.session.roles}
-              onSubmit={(input) => void submitReceipt(input)}
-              receipt={receipt}
-              errors={errors}
-              busy={busy}
-            />
+            <div
+              role="tabpanel"
+              id={panelIdOf("map")}
+              aria-labelledby={tabIdOf("map")}
+              hidden={tab !== "map"}
+              tabIndex={0}
+            >
+              <CoarseAreaView board={load.board} />
+            </div>
+            <div
+              role="tabpanel"
+              id={panelIdOf("yields")}
+              aria-labelledby={tabIdOf("yields")}
+              hidden={tab !== "yields"}
+              tabIndex={0}
+            >
+              <DecisionSummary
+                forecast={load.board.forecast}
+                ownerApprovalCurrent={load.board.ownerApprovalCurrent}
+              />
+            </div>
+            <div
+              role="tabpanel"
+              id={panelIdOf("dispatch")}
+              aria-labelledby={tabIdOf("dispatch")}
+              hidden={tab !== "dispatch"}
+              tabIndex={0}
+            >
+              <MatchingBoard
+                board={load.board}
+                roles={api.session.roles}
+                onApprove={(volunteerIds) => void approve(volunteerIds)}
+                busy={busy}
+                message={approvalMessage}
+              />
+              <ReceiptForm
+                roles={api.session.roles}
+                onSubmit={(input) => void submitReceipt(input)}
+                receipt={receipt}
+                errors={errors}
+                busy={busy}
+              />
+            </div>
+            <div
+              role="tabpanel"
+              id={panelIdOf("video")}
+              aria-labelledby={tabIdOf("video")}
+              hidden={tab !== "video"}
+              tabIndex={0}
+            >
+              <DemoVideo />
+            </div>
           </>
         )}
       </main>

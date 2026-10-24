@@ -9,6 +9,9 @@ on:
     branches: [main]
     paths:
       - "apps/web/**"
+      # The console's Demo Video tab embeds these; re-recording must redeploy the page.
+      - "docs/media/harvestgrid-demo.webm"
+      - "docs/media/harvestgrid-demo.scenes.json"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -76,6 +79,20 @@ jobs:
           # The demo entry must be in the bundle, not a redirect to the live API app.
           grep -rq 'FIXTURE' dist/assets/*.js \
             || { echo "::error::demo fixture bundle not found"; exit 1; }
+          # The Demo Video tab embeds docs/media/; a bundle without it renders a dead tab.
+          test -s dist/media/harvestgrid-demo.webm \
+            || { echo "::error::dist/media/harvestgrid-demo.webm missing (record it: make demo-record)"; exit 1; }
+          test -s dist/media/harvestgrid-demo.scenes.json \
+            || { echo "::error::cue sheet missing; scene cards cannot sync without it"; exit 1; }
+          node -e '
+            const sheet = JSON.parse(require("fs").readFileSync("dist/media/harvestgrid-demo.scenes.json", "utf8"));
+            const ids = sheet.scenes.map((s) => s.id).join(",");
+            if (ids !== "onboarding,privacy,ripening,dispatch") {
+              console.error("::error::cue sheet scenes are " + ids);
+              process.exit(1);
+            }
+            console.log("cue sheet: " + sheet.scenes.length + " scenes, " + sheet.durationMs + " ms");
+          '
           du -sh dist
 
       - name: Configure Pages

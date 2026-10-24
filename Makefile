@@ -85,9 +85,10 @@ compose-down:
 compose-logs:
 	docker compose logs -f --tail=100
 
-# Records docs/media/harvestgrid-demo.webm from a running demo server.
+# Records docs/media/harvestgrid-demo.webm and its cue sheet from a running demo server.
+# Needs the demo on :5173 (`make web-dev`) and a Playwright browser:
+#   cd apps/web && corepack pnpm exec playwright install chromium
 demo-record:
-	cd apps/web && corepack pnpm exec playwright install chromium
 	node --experimental-strip-types scripts/record-demo.ts
 
 # Verifies the scene plan and the served page without needing a browser binary.
