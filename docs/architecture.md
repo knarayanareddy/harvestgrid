@@ -3,6 +3,17 @@
 ## Implemented boundaries
 
 ```text
+Celery beat / RQ ──► weather tick ──► coarse Open-Meteo ──► dedupe ──► GDD curve
+                          │                                            │
+                          ▼                                            ▼
+                per-tree projection version              stage + harvest window
+                                                     (experimental, human review)
+
+coordinator approval ──► dispatch rules ──► SMS adapter (Twilio | SNS)
+        │                    │                        │
+        └ owner approval     └ opt-in, quiet hours,  └ no address, no phone in logs
+                               idempotency, daily cap
+
 Ring webhook ──► HMAC + raw-body + dedupe ──► media job queue (fixtures only)
      │                                              │
      ▼                                              ▼
@@ -40,11 +51,14 @@ registration request ──► typed validation (cultivar, coarse geohash, bloom
 - `packages/weather-client/harvestgrid_weather/open_meteo.py` requests temperature and precipitation features for geohash precision 4-5 only. Coordinates are truncated to one decimal place, the payload never contains access notes or exact coordinates, and provenance records `exact_coordinates_included: false`. Archive and forecast ranges are bounded, transient failures are retried with a bounded backoff, and provider rate limits are surfaced rather than hidden.
 - `packages/vision/harvestgrid_vision/` extracts the 16-column `features_v1` contract from masked luminance/saturation grids. Registration, luminance, contrast, ROI-coverage, and quality gates reject unsuitable frames with reason codes instead of emitting a zero count; missing values stay `-1.0`. `OnnxDetector` fails closed when no artifact is loaded, so no fixture result can masquerade as model output.
 - `apps/web/` is the coordinator dashboard. It talks to a `CoordinatorApi` port with no address, raw-media, or Ring method exposed; the default `FixtureCoordinatorApi` labels every screen `FIXTURE DATA`. Matching re-applies the same hard filters and weights (pinned by a contract test against `engine.py`), receipts are validated locally before the request leaves the browser and export only contract-allowed fields, and access-reveal previews are capped at two hours or the assignment expiry.
+- `services/forecasting/` schedules coarse-weather ingestion. `WeatherIngestionScheduler.tick` selects due trees, skips inactive consents, honours per-tree intervals and failure backoff, deduplicates observations by provider digest, and writes a new projection version only when the fingerprint changes. `project_ripening` converts accumulated growing-degree-days into a phenological stage and harvest window; an unreviewed prior, a short history, or a missing rate keeps the result `experimental` and `low` confidence. Celery and RQ are optional: their factories raise `WorkerBackendUnavailable` when absent, and the loop is otherwise a plain `SchedulerWorker`.
+- `services/notifications/` dispatches pickup alerts only with current coordinator *and* owner approval. Opt-in, quiet hours, a daily cap, suppression, and the `glean/state/recipient/template/version` idempotency key gate every send. Messages carry a coarse area, window, and short constraints; `PickupAlert` has no address field, and the renderer refuses text containing any restricted marker it was given. Twilio and SNS transports share one typed port and map provider failures to stable codes without leaking phone numbers or tokens. The ledger stores a body digest, not the body.
+- `packages/vision/harvestgrid_vision/onnx_detector.py` is the real inference path: digest-verified artifact, letterbox preprocessing from an RGB plane, `(C, N)`/`(N, C)` YOLOv8 decoding, class-agnostic NMS, and privacy-mask filtering before a detection exists. `packages/vision/weights/manifest.json` declares the required artifact as **blocked**; `tools/fetch_weights.py` installs only digest-verified local files and refuses blocked entries.
 - Contract tests compare schemas byte-for-byte and exercise fictional examples. The walking path validates a contract only.
 
 ## Deliberately absent
 
-No Ring device client (OAuth, capability discovery, media download), live weather request, trained vision model, forecast model, cultivar prior, durable persistence, backend API server for the web app, invitation/address service, notification, or deployment unit exists. The onboarding store, webhook store, job queue, and weather cache are in-memory fixtures, not databases or queues. `OnnxDetector` deliberately raises `InferenceBackendUnavailable`; the heuristic detector is labelled `heuristic_fixture` and produces no model-quality claim. The dashboard's live mode requires a backend that this repository does not yet ship, so its default is fixture mode.
+No Ring device client (OAuth, capability discovery, media download), live weather request, trained vision model, fruit-detection ONNX checkpoint, forecast model, reviewed cultivar prior, durable persistence, Celery/RQ broker, live Twilio or SNS credential, backend API server for the web app, or deployment unit exists. Notification delivery, SMS cost/deliverability, and ripening accuracy are therefore unverified. The onboarding store, webhook store, job queue, and weather cache are in-memory fixtures, not databases or queues. `YoloOnnxDetector` raises `ArtifactError` before creating a session when the artifact is absent or drifted, and `InferenceBackendUnavailable` when `onnxruntime` is missing; the heuristic detector is labelled `heuristic_fixture` and produces no model-quality claim. The dashboard's live mode requires a backend that this repository does not yet ship, so its default is fixture mode.
 
 A future operational pipeline must keep observation/model proposals separate from owner/coordinator authority and must preserve consent and scoped-address checks outside the ranking function.
 

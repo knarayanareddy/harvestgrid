@@ -8,6 +8,9 @@ dependencies = []
 [dependency-groups]
 dev = [
   "jsonschema[format]==4.25.1",
+  "numpy==2.3.4",
+  "onnx==1.19.1",
+  "onnxruntime==1.23.2",
   "mypy==1.18.2",
   "pip-audit==2.9.0",
   "pytest==9.0.3",
@@ -26,6 +29,8 @@ packages = [
   "packages/vision/harvestgrid_vision",
   "packages/weather-client/harvestgrid_weather",
   "services/ring-adapter/harvestgrid_ring_adapter",
+  "services/forecasting/harvestgrid_forecasting",
+  "services/notifications/harvestgrid_notifications",
 ]
 
 [tool.uv]
@@ -57,4 +62,6 @@ files = [
   "packages/vision",
   "packages/weather-client",
   "services/ring-adapter",
+  "services/forecasting",
+  "services/notifications",
 ]

@@ -7,7 +7,6 @@ from .detector import (
     FruitClusterDetector,
     HeuristicClusterDetector,
     InferenceBackendUnavailable,
-    OnnxDetector,
 )
 from .features_v1 import (
     COLUMN_UNITS,
@@ -19,6 +18,19 @@ from .features_v1 import (
     to_row,
     validate_row,
 )
+from .onnx_detector import (
+    ARTIFACT_ERROR_CODES,
+    DEFAULT_IOU_THRESHOLD,
+    DEFAULT_SCORE_THRESHOLD,
+    YOLO_INPUT_SIZE,
+    ArtifactError,
+    OnnxArtifact,
+    YoloOnnxDetector,
+    allowed_fraction,
+    decode_predictions,
+    file_sha256,
+    letterbox_geometry,
+)
 from .worker import (
     DEFAULT_GRID,
     OBSERVATION_SCHEMA_VERSION,
@@ -29,13 +41,17 @@ from .worker import (
 )
 
 __all__ = [
+    "ARTIFACT_ERROR_CODES",
     "COLUMN_UNITS",
     "DEFAULT_GRID",
+    "DEFAULT_IOU_THRESHOLD",
+    "DEFAULT_SCORE_THRESHOLD",
     "FEATURES_V1_COLUMNS",
     "FEATURE_VERSION",
     "MISSING_VALUE",
     "OBSERVATION_SCHEMA_VERSION",
     "SCHEMA_VERSION",
+    "ArtifactError",
     "Detection",
     "DetectorError",
     "ExtractionError",
@@ -47,7 +63,13 @@ __all__ = [
     "HeuristicClusterDetector",
     "InferenceBackendUnavailable",
     "Observation",
-    "OnnxDetector",
+    "OnnxArtifact",
+    "YOLO_INPUT_SIZE",
+    "YoloOnnxDetector",
+    "allowed_fraction",
+    "decode_predictions",
+    "file_sha256",
+    "letterbox_geometry",
     "to_row",
     "validate_row",
 ]

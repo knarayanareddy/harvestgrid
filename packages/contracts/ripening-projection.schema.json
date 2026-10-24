@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harvestgrid.example/schemas/ripening-projection-v1.json",
+  "title": "HarvestGrid ripening projection (scheduler output)",
+  "description": "Temperature-driven phenology snapshot for one tree. Coarse geohash only; no coordinates, address, media, or ripeness/food-safety claim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cultivar_id",
+    "content_version",
+    "prior_review_status",
+    "coarse_geohash",
+    "as_of",
+    "accumulated_gdd",
+    "stage",
+    "stage_progress",
+    "confidence",
+    "experimental",
+    "reason_codes",
+    "human_readiness_review_required",
+    "internal_ripeness_inferred",
+    "food_safety_inferred"
+  ],
+  "properties": {
+    "cultivar_id": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "content_version": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "prior_review_status": { "enum": ["approved", "draft", "fixture_unreviewed"] },
+    "coarse_geohash": { "type": "string", "pattern": "^[0-9bcdefghjkmnpqrstuvwxyz]{4,5}$" },
+    "as_of": { "type": "string", "format": "date" },
+    "accumulated_gdd": { "type": "number", "minimum": 0 },
+    "stage": {
+      "enum": [
+        "dormant",
+        "bud_break",
+        "bloom",
+        "fruit_set",
+        "pit_hardening",
+        "veraison",
+        "harvest_ripe",
+        "past_ripe"
+      ]
+    },
+    "stage_progress": { "type": "number", "minimum": 0, "maximum": 1 },
+    "next_stage": {
+      "enum": [
+        "dormant",
+        "bud_break",
+        "bloom",
+        "fruit_set",
+        "pit_hardening",
+        "veraison",
+        "harvest_ripe",
+        "past_ripe"
+      ]
+    },
+    "gdd_to_next_stage": { "type": "number", "minimum": 0 },
+    "daily_gdd_rate": { "type": "number", "minimum": 0 },
+    "days_observed": { "type": "integer", "minimum": 0 },
+    "missing_days": { "type": "integer", "minimum": 0 },
+    "projected_harvest_start": { "type": "string", "format": "date" },
+    "projected_harvest_end": { "type": "string", "format": "date" },
+    "confidence": { "enum": ["low", "medium"] },
+    "experimental": { "type": "boolean" },
+    "reason_codes": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+      "uniqueItems": true
+    },
+    "human_readiness_review_required": { "const": true },
+    "internal_ripeness_inferred": { "const": false },
+    "food_safety_inferred": { "const": false }
+  },
+  "not": {
+    "anyOf": [
+      { "required": ["address"] },
+      { "required": ["latitude"] },
+      { "required": ["longitude"] },
+      { "required": ["raw_media_uri"] }
+    ]
+  }
+}

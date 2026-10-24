@@ -1,0 +1,56 @@
+{
+  "manifest_version": "vision-weights-v1",
+  "updated": "2026-10-24",
+  "weights_directory": "packages/vision/weights",
+  "binary_policy": "ONNX binaries are never committed. `*.onnx` is Git-ignored and each artifact must be fetched or installed locally, then verified against a recorded SHA-256.",
+  "artifacts": [
+    {
+      "artifact_id": "plum-yolov8n-int8-v1",
+      "role": "primary_fruit_detector",
+      "status": "blocked",
+      "format": "onnx",
+      "architecture": "yolov8n",
+      "quantization": "int8",
+      "input_size": 640,
+      "class_names": ["plum_cluster"],
+      "expected_sha256": null,
+      "expected_size_bytes": null,
+      "download_url": null,
+      "training_provenance": null,
+      "approved_for_operational_use": false,
+      "blocked_reasons": [
+        "No owner-consented European-plum detection dataset has been released, so no checkpoint can be trained.",
+        "No reviewed model card, held-out site/season evaluation, or approval record exists for a fruit detector.",
+        "Generic COCO/ImageNet YOLOv8n weights detect no fruit class; presenting one as a plum detector would fabricate model evidence.",
+        "This environment cannot download GitHub release assets (objects.githubusercontent.com is blocked), so no third-party binary can be retrieved here."
+      ],
+      "acceptance_requirements": [
+        "A reviewed dataset manifest with owner consent and held-out sites/seasons.",
+        "A recorded SHA-256 and byte size for the exact quantized artifact.",
+        "A model card stating architecture, quantization, class names, input size, and evaluation metrics.",
+        "Coordinator review recorded in SPEC_TRACEABILITY.md before any operational claim."
+      ]
+    },
+    {
+      "artifact_id": "synthetic-shape-smoke-v1",
+      "role": "runtime_smoke_test_only",
+      "status": "test_only",
+      "format": "onnx",
+      "architecture": "single-conv-shape-probe",
+      "quantization": "fp32",
+      "input_size": 640,
+      "class_names": ["fruit"],
+      "expected_sha256": null,
+      "expected_size_bytes": null,
+      "download_url": null,
+      "training_provenance": "none_synthetic_untrained",
+      "approved_for_operational_use": false,
+      "blocked_reasons": [
+        "Synthetic artifact generated inside tests to exercise preprocessing, decoding, NMS, and privacy masking. It has no trained weights and detects nothing."
+      ],
+      "acceptance_requirements": [
+        "Never referenced by the walking path, the API, or any forecast input."
+      ]
+    }
+  ]
+}

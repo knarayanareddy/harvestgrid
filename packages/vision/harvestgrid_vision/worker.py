@@ -72,6 +72,8 @@ class ExtractionRequest:
     registration_score: float | None = None
     area_change_ratio: float | None = None
     provenance: str = "fixture"
+    #: Optional normalized RGB planes for real ONNX inference; omitted by fixtures.
+    rgb: tuple[float, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -380,6 +382,7 @@ def _frame(request: ExtractionRequest, width: int, height: int) -> Frame:
         luminance=request.luminance,
         saturation=request.saturation,
         provenance=request.provenance,
+        rgb=request.rgb,
     )
 
 

@@ -6,10 +6,11 @@ Two implementations:
   tests and by the fixture walking path. It groups "plum-like" cells (low value, high
   saturation) into clusters. It is labelled ``heuristic_fixture`` — it is **not** a
   trained model and must never be reported as one.
-* :class:`OnnxDetector` is the production shape (ONNX Runtime + normalized RGB frame).
-  When ``onnxruntime`` or the artifact is absent it raises
-  :class:`InferenceBackendUnavailable` rather than silently substituting the heuristic,
-  so an unsupported capability fails visibly (``AC-HG-005``).
+* :class:`harvestgrid_vision.onnx_detector.YoloOnnxDetector` is the production ONNX
+  Runtime path (verified artifact + normalized RGB frame). When ``onnxruntime`` or the
+  artifact is absent it raises :class:`InferenceBackendUnavailable` or
+  :class:`~harvestgrid_vision.onnx_detector.ArtifactError` rather than silently substituting
+  the heuristic, so an unsupported capability fails visibly (``AC-HG-005``).
 
 Detections are filtered against the view's allowed-cell raster before they leave the
 detector, so anything inside a privacy mask can never become a feature.
@@ -53,6 +54,9 @@ class Frame:
     luminance: tuple[float, ...]
     saturation: tuple[float, ...]
     provenance: str = "fixture"
+    #: Optional normalized RGB planes (``height * width * 3``) required by real ONNX
+    #: inference. Held in memory only; never persisted with the feature row.
+    rgb: tuple[float, ...] | None = None
 
     def __post_init__(self) -> None:
         if self.width < 1 or self.height < 1 or self.width * self.height > MAX_FRAME_CELLS:
@@ -60,6 +64,14 @@ class Frame:
         expected = self.width * self.height
         if len(self.luminance) != expected or len(self.saturation) != expected:
             raise DetectorError("frame_cell_count_mismatch")
+        if self.rgb is not None:
+            if len(self.rgb) != expected * 3:
+                raise DetectorError("frame_rgb_cell_count_mismatch")
+            for value in self.rgb:
+                if not isinstance(value, (int, float)) or isinstance(value, bool):
+                    raise DetectorError("frame_cells_must_be_numeric")
+                if not math.isfinite(float(value)) or not 0.0 <= float(value) <= 1.0:
+                    raise DetectorError("frame_cells_must_be_normalized")
         for values in (self.luminance, self.saturation):
             for value in values:
                 if not isinstance(value, (int, float)) or isinstance(value, bool):
@@ -79,6 +91,8 @@ class Frame:
         digest.update(f"{self.width}x{self.height}".encode("ascii"))
         digest.update(bytes(round(value * 255) for value in self.luminance))
         digest.update(bytes(round(value * 255) for value in self.saturation))
+        if self.rgb is not None:
+            digest.update(bytes(round(value * 255) for value in self.rgb))
         return digest.hexdigest()
 
 
@@ -195,37 +209,3 @@ class HeuristicClusterDetector:
                     )
                 )
         return tuple(sorted(clusters, key=lambda item: (item.center_x, item.center_y)))
-
-
-class OnnxDetector:
-    """Production Faster R-CNN/single-class ONNX detector shape (not executed here)."""
-
-    model_kind: str
-    model_version: str
-    data_version: str
-
-    def __init__(
-        self,
-        *,
-        artifact_path: str,
-        model_version: str,
-        data_version: str,
-        score_threshold: float = 0.4,
-    ) -> None:
-        try:
-            import onnxruntime  # type: ignore[import-not-found]  # noqa: F401
-        except ModuleNotFoundError:
-            raise InferenceBackendUnavailable(
-                "onnxruntime is not installed; refusing to substitute the heuristic fixture"
-            ) from None
-        self.artifact_path = artifact_path
-        self.model_version = model_version
-        self.data_version = data_version
-        self.score_threshold = score_threshold
-        raise InferenceBackendUnavailable(
-            "ONNX artifact loading is not implemented in this slice; "
-            "no fixture detector is substituted for live inference"
-        )
-
-    def detect(self, frame: Frame, allowed: tuple[tuple[bool, ...], ...]) -> tuple[Detection, ...]:
-        raise InferenceBackendUnavailable("onnx detector is unavailable")
