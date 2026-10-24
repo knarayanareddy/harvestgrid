@@ -24,3 +24,6 @@ node_modules/
 .pnpm-store/
 # Install sidecars are machine-local facts about an untracked artifact.
 packages/vision/weights/*.provenance.json
+# Playwright's staging directory; the recorder moves the single .webm out and deletes this.
+docs/media/.playwright-raw/
+apps/web/test-results/

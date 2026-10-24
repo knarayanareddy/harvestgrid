@@ -1,0 +1,131 @@
+# HarvestGrid local stack: database, cache, coordination API, dashboard.
+#
+#   cp .env.example .env      # optional; every value below has a fixture-safe default
+#   docker compose up --build
+#   open http://localhost:5173                       # dashboard (Vite dev server)
+#   open http://localhost:8000/docs                  # FastAPI OpenAPI UI
+#   open http://localhost:8080                       # static bundle profile (see "web-prod")
+#
+# What is real and what is fixture, stated plainly:
+#
+#   * Postgres 16 + PostGIS and Redis 7 are provisioned, healthy, and reachable from the API on the
+#     compose network via DATABASE_URL / REDIS_URL. The coordination API does **not** open either
+#     connection yet — its store is in-process fixture state. The services are here so the next
+#     slice has the real topology, and so `psql`/`redis-cli` inspection works today.
+#   * The API, weather client, Ring adapter, and SMS transport all run against recorded fixtures.
+#     No device, no Open-Meteo call, no telephony account. Responses carry provenance labels and
+#     the dashboard shows a FIXTURE DATA banner.
+#   * One API worker only: dispatch state lives in memory. Scaling the API without a shared store
+#     and broker would fork coordinator state, so the compose file deliberately keeps it at 1.
+
+name: harvestgrid
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-harvestgrid}
+      POSTGRES_USER: ${POSTGRES_USER:-harvestgrid}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-harvestgrid_local_only}
+      # Deterministic collation so local and CI sorts agree.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-harvestgrid} -d ${POSTGRES_DB:-harvestgrid} -h 127.0.0.1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    # No persistence: cache only, and the API treats it as ephemeral.
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    environment:
+      DEMO_MODE: fixture
+      API_HOST: 0.0.0.0
+      API_PORT: "8000"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Wired for the persistence slice. The fixture API reads neither today; it is passed so the
+      # configuration is exercised by `docker compose config` and ready to use.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-harvestgrid}:${POSTGRES_PASSWORD:-harvestgrid_local_only}@db:5432/${POSTGRES_DB:-harvestgrid}
+      REDIS_URL: redis://redis:6379/0
+      # Leave FORECASTING_BROKER_URL unset: broker submission is not implemented, so setting it
+      # would only produce honest 503s. See services/api/harvestgrid_api/__main__.py.
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2).status == 200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      target: dev
+      args:
+        VITE_DEMO_MODE: ${VITE_DEMO_MODE:-true}
+        VITE_BASE_PATH: ${VITE_BASE_PATH:-/}
+    environment:
+      # The browser uses relative `/v1/...` URLs; Vite forwards them to the API container.
+      API_BASE_URL_INTERNAL: http://api:8000
+      VITE_DEMO_MODE: ${VITE_DEMO_MODE:-true}
+      VITE_BASE_PATH: ${VITE_BASE_PATH:-/}
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    volumes:
+      # Live editing without a rebuild. The named volume keeps the container's own node_modules
+      # (built for the container's platform) from being shadowed by the host's.
+      - ./apps/web/src:/app/src:ro
+      - ./apps/web/tests:/app/tests:ro
+      - web-node-modules:/app/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Optional static rendition of the same bundle that GitHub Pages serves, for verifying the
+  # production build (base path, asset hashing, nginx fallback) without a container registry.
+  #   docker compose --profile static up --build web-prod
+  web-prod:
+    profiles: ["static"]
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        VITE_DEMO_MODE: "true"
+        VITE_BASE_PATH: /
+    ports:
+      - "${WEB_PROD_PORT:-8080}:80"
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  web-node-modules:
