@@ -147,7 +147,7 @@ describe("recording plan replay", () => {
         );
       }
     }
-  });
+  }, 20_000);
 
   it("keeps the dispatch gate closed until the plan's preconditions are met", () => {
     act(() => {

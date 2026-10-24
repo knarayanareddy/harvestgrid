@@ -316,12 +316,12 @@ export async function record(options: RecordOptions): Promise<{
       // Frame the panel this scene acts on, so the video shows the change rather than a scroll
       // jump. The panel id comes from the plan, so a renamed section cannot desynchronise them.
       await focusPanel(page, scene.panelTestId);
-      await page.waitForTimeout(600);
+      await page.waitForTimeout(2000);
       const sceneStart = now() - startedAt + LEAD_IN_MS;
       console.log(`▶ ${scene.title}`);
       for (const action of scene.actions) await perform(page, action);
       await assertExpectations(page, scene.id);
-      await page.waitForTimeout(4500);
+      await page.waitForTimeout(20000);
       sceneCues.push({
         id: scene.id,
         title: scene.title,
@@ -334,7 +334,7 @@ export async function record(options: RecordOptions): Promise<{
     }
     // A closing beat so the last frame is not the dispatch table mid-scroll.
     await page.evaluate("window.scrollTo({ top: 0, behavior: 'smooth' })");
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(6000);
     const durationMs = Math.round(now() - startedAt + LEAD_IN_MS);
     await context.close();
 

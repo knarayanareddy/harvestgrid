@@ -69,7 +69,7 @@ describe("recorded walkthrough artefacts", () => {
     expect(first?.startMs).toBeLessThan(5_000);
     // The recorder adds a closing beat after the last scene, so the tail is shorter than it.
     expect(sheet.durationMs).toBeGreaterThanOrEqual(last?.endMs ?? 0);
-    expect(sheet.durationMs - (last?.endMs ?? 0)).toBeLessThanOrEqual(4_000);
+    expect(sheet.durationMs - (last?.endMs ?? 0)).toBeLessThanOrEqual(10_000);
     for (let index = 1; index < sheet.scenes.length; index += 1) {
       const previous = sheet.scenes[index - 1];
       const current = sheet.scenes[index];

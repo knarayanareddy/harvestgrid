@@ -1,19 +1,19 @@
 {
   "video": "harvestgrid-demo.webm",
-  "generatedAt": "2026-10-24T16:39:37.076Z",
+  "generatedAt": "2026-10-24T18:06:18.496Z",
   "viewport": {
     "width": 1280,
     "height": 900
   },
-  "durationMs": 38205,
+  "durationMs": 108869,
   "scenes": [
     {
       "id": "onboarding",
       "title": "1 · Tree onboarding and consent",
       "cardTitle": "Onboarding",
       "narration": "A tree is registered with a coarse geohash only. Camera collection needs its own consent — the demo refuses to continue without it.",
-      "startMs": 2464,
-      "endMs": 8694,
+      "startMs": 3874,
+      "endMs": 26454,
       "assertions": [
         "collection-status ∋ Consented"
       ]
@@ -23,8 +23,8 @@
       "title": "2 · Privacy polygon and mask boundary",
       "cardTitle": "Privacy ROI Mask",
       "narration": "Drag a vertex of the tree ROI, then widen the neighbour mask. Every change resets both approvals, and detections that fall mostly outside the allowed region are dropped.",
-      "startMs": 9999,
-      "endMs": 17281,
+      "startMs": 29130,
+      "endMs": 51990,
       "assertions": [
         "view-approvals ∋ owner ✔",
         "webhook-summary ∋ HMAC verified"
@@ -35,8 +35,8 @@
       "title": "3 · Open-Meteo ripening curve",
       "cardTitle": "Open-Meteo Ripening",
       "narration": "Warm the weather offset and the growing-degree-day curve advances, moving the stage and the harvest window. The projection stays experimental, with human review required.",
-      "startMs": 18552,
-      "endMs": 25803,
+      "startMs": 54668,
+      "endMs": 76986,
       "assertions": [
         "dispatch-gate ∋ Gate"
       ]
@@ -46,8 +46,8 @@
       "title": "4 · Volunteer dispatch",
       "cardTitle": "Volunteer Dispatch",
       "narration": "Confirm readiness, assign two volunteers, and dispatch. The result shows per-recipient outcomes, masked phone numbers, and body digests — never message bodies.",
-      "startMs": 27065,
-      "endMs": 35313,
+      "startMs": 80185,
+      "endMs": 102130,
       "assertions": [
         "dispatch-summary ∋ sent",
         "outcome-volunteer-c ∋ sms opt in required"
